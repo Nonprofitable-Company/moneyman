@@ -7,6 +7,9 @@ class Database;
 class AccountsWidget;
 class TrialBalanceWidget;
 class GeneralLedgerWidget;
+class IncomeStatementWidget;
+class BalanceSheetWidget;
+class QTabWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -18,6 +21,7 @@ public:
 
 private slots:
     void onNewJournalEntry();
+    void refreshAllReports();
 
 private:
     void setupUi();
@@ -27,8 +31,11 @@ private:
 
     Database *m_database;
     AccountsWidget *m_accountsWidget;
+    QTabWidget *m_reportTabs;
     TrialBalanceWidget *m_trialBalanceWidget;
     GeneralLedgerWidget *m_generalLedgerWidget;
+    IncomeStatementWidget *m_incomeStatementWidget;
+    BalanceSheetWidget *m_balanceSheetWidget;
 };
 
 #endif // MAIN_WINDOW_H

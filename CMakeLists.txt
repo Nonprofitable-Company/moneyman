@@ -38,6 +38,10 @@ add_library(moneyman_lib STATIC
     src/views/trial_balance_widget.h
     src/views/general_ledger_widget.cpp
     src/views/general_ledger_widget.h
+    src/views/income_statement_widget.cpp
+    src/views/income_statement_widget.h
+    src/views/balance_sheet_widget.cpp
+    src/views/balance_sheet_widget.h
     src/app/main_window.cpp
     src/app/main_window.h
 )
