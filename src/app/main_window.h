@@ -5,6 +5,7 @@
 
 class Database;
 class AccountsWidget;
+class TrialBalanceWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +26,7 @@ private:
 
     Database *m_database;
     AccountsWidget *m_accountsWidget;
+    TrialBalanceWidget *m_trialBalanceWidget;
 };
 
 #endif // MAIN_WINDOW_H
