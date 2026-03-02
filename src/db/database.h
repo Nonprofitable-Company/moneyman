@@ -55,6 +55,15 @@ public:
                           const std::vector<JournalLineRow> &lines);
     std::vector<JournalEntryRow> allJournalEntries() const;
 
+    // Ledger: lines for a specific account, joined with entry date/description
+    struct LedgerRow {
+        QString date;
+        QString description;
+        int64_t debitCents = 0;
+        int64_t creditCents = 0;
+    };
+    std::vector<LedgerRow> ledgerForAccount(int64_t accountId) const;
+
 private:
     bool createSchema();
     bool setEncryptionKey(const QString &key);

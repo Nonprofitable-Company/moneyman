@@ -324,3 +324,28 @@ std::vector<JournalEntryRow> Database::allJournalEntries() const
     }
     return result;
 }
+
+std::vector<Database::LedgerRow> Database::ledgerForAccount(int64_t accountId) const
+{
+    std::vector<LedgerRow> result;
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT je.entry_date, je.description, jl.debit_cents, jl.credit_cents
+        FROM journal_lines jl
+        JOIN journal_entries je ON je.id = jl.entry_id
+        WHERE jl.account_id = ? AND je.posted = 1
+        ORDER BY je.entry_date, je.id
+    )");
+    query.addBindValue(static_cast<qlonglong>(accountId));
+    query.exec();
+
+    while (query.next()) {
+        LedgerRow row;
+        row.date = query.value(0).toString();
+        row.description = query.value(1).toString();
+        row.debitCents = query.value(2).toLongLong();
+        row.creditCents = query.value(3).toLongLong();
+        result.push_back(row);
+    }
+    return result;
+}

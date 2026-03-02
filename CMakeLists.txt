@@ -36,6 +36,8 @@ add_library(moneyman_lib STATIC
     src/views/journal_entry_dialog.h
     src/views/trial_balance_widget.cpp
     src/views/trial_balance_widget.h
+    src/views/general_ledger_widget.cpp
+    src/views/general_ledger_widget.h
     src/app/main_window.cpp
     src/app/main_window.h
 )
