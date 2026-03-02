@@ -38,8 +38,12 @@ bool Database::open(const QString &path, const QString &encryptionKey)
     }
 
     // Enable SQLCipher encryption via PRAGMA
-    QString key = encryptionKey.isEmpty() ? "CHANGEME_DEFAULT_KEY" : encryptionKey;
-    if (!setEncryptionKey(key)) {
+    if (encryptionKey.isEmpty()) {
+        m_lastError = "Encryption key must not be empty";
+        m_db.close();
+        return false;
+    }
+    if (!setEncryptionKey(encryptionKey)) {
         return false;
     }
 
@@ -65,8 +69,11 @@ bool Database::changeEncryptionKey(const QString &newKey)
         return false;
     }
     QSqlQuery query(m_db);
-    if (!query.exec(QString("PRAGMA rekey='%1'").arg(newKey))) {
-        m_lastError = "Failed to change encryption key: " + query.lastError().text();
+    // Escape single quotes to prevent SQL injection in PRAGMA
+    QString safeKey = newKey;
+    safeKey.replace("'", "''");
+    if (!query.exec(QString("PRAGMA rekey='%1'").arg(safeKey))) {
+        m_lastError = "Failed to change encryption key (check passphrase)";
         return false;
     }
     logAudit("CHANGE_KEY", "Encryption key changed");
@@ -96,8 +103,11 @@ bool Database::setEncryptionKey(const QString &key)
 {
     QSqlQuery query(m_db);
     // SQLCipher PRAGMA key must be the first statement after opening
-    if (!query.exec(QString("PRAGMA key='%1'").arg(key))) {
-        m_lastError = "Failed to set encryption key: " + query.lastError().text();
+    // Escape single quotes to prevent SQL injection in PRAGMA
+    QString safeKey = key;
+    safeKey.replace("'", "''");
+    if (!query.exec(QString("PRAGMA key='%1'").arg(safeKey))) {
+        m_lastError = "Failed to set encryption key (check passphrase)";
         return false;
     }
     return true;
@@ -275,6 +285,9 @@ bool Database::deleteAccount(int64_t id)
         return false;
     }
 
+    // Read account details before deletion for audit log
+    AccountRow acct = accountById(id);
+
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM accounts WHERE id = ?");
     query.addBindValue(static_cast<qlonglong>(id));
@@ -283,8 +296,8 @@ bool Database::deleteAccount(int64_t id)
         return false;
     }
 
-    AccountRow acct = accountById(id);
-    logAudit("DELETE_ACCOUNT", QString("Deleted account #%1").arg(id));
+    logAudit("DELETE_ACCOUNT", QString("Deleted account #%1 code=%2 name=%3")
+        .arg(id).arg(acct.code).arg(acct.name));
     return true;
 }
 
@@ -542,21 +555,27 @@ bool Database::closePeriod(const QString &startDate, const QString &endDate)
         return false;
     }
 
-    auto accounts = allAccounts();
+    // Use period-filtered balances, not cumulative all-time balances
+    auto periodBalances = accountBalancesForPeriod(startDate, endDate);
 
-    // Sum revenue and expense balances
+    // Sum revenue and expense balances for this period only
     int64_t totalRevenue = 0;
     int64_t totalExpenses = 0;
     std::vector<std::pair<int64_t, int64_t>> revenueAccounts;  // id, balance
     std::vector<std::pair<int64_t, int64_t>> expenseAccounts;  // id, balance
 
-    for (const auto &acct : accounts) {
-        if (acct.type == "revenue" && acct.balanceCents != 0) {
-            totalRevenue += acct.balanceCents;
-            revenueAccounts.push_back({acct.id, acct.balanceCents});
-        } else if (acct.type == "expense" && acct.balanceCents != 0) {
-            totalExpenses += acct.balanceCents;
-            expenseAccounts.push_back({acct.id, acct.balanceCents});
+    for (const auto &ab : periodBalances) {
+        // accountBalancesForPeriod returns net = debits - credits
+        // Revenue (credit-normal): net is negative when there's revenue
+        // Expense (debit-normal): net is positive when there are expenses
+        if (ab.type == "revenue" && ab.balanceCents != 0) {
+            // For credit-normal accounts, the period balance is -(debits - credits) = credits - debits
+            int64_t periodBalance = -ab.balanceCents;
+            totalRevenue += periodBalance;
+            revenueAccounts.push_back({ab.accountId, periodBalance});
+        } else if (ab.type == "expense" && ab.balanceCents != 0) {
+            totalExpenses += ab.balanceCents;
+            expenseAccounts.push_back({ab.accountId, ab.balanceCents});
         }
     }
 
@@ -726,20 +745,66 @@ bool Database::voidJournalEntry(int64_t entryId)
     QString reversalDesc = QString("[VOID] Reversal of entry #%1: %2")
         .arg(entryId).arg(original.description);
 
-    if (!postJournalEntry(original.date, reversalDesc, reversedLines)) {
+    // Perform entire void atomically in a single transaction
+    m_db.transaction();
+
+    // Insert reversal entry
+    QSqlQuery entryQuery(m_db);
+    entryQuery.prepare("INSERT INTO journal_entries (entry_date, description, posted) VALUES (?, ?, 1)");
+    entryQuery.addBindValue(original.date);
+    entryQuery.addBindValue(reversalDesc);
+    if (!entryQuery.exec()) {
+        m_lastError = entryQuery.lastError().text();
+        m_db.rollback();
         return false;
     }
+    int64_t reversalEntryId = entryQuery.lastInsertId().toLongLong();
 
-    // Mark original as voided
+    // Insert reversal lines and update balances
+    for (const auto &line : reversedLines) {
+        QSqlQuery lineQuery(m_db);
+        lineQuery.prepare("INSERT INTO journal_lines (entry_id, account_id, debit_cents, credit_cents) VALUES (?, ?, ?, ?)");
+        lineQuery.addBindValue(static_cast<qlonglong>(reversalEntryId));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.accountId));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.debitCents));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.creditCents));
+        if (!lineQuery.exec()) {
+            m_lastError = lineQuery.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+
+        AccountRow acct = accountById(line.accountId);
+        int64_t delta = 0;
+        if (acct.type == "asset" || acct.type == "expense") {
+            delta = line.debitCents - line.creditCents;
+        } else {
+            delta = line.creditCents - line.debitCents;
+        }
+
+        QSqlQuery balQuery(m_db);
+        balQuery.prepare("UPDATE accounts SET balance_cents = balance_cents + ? WHERE id = ?");
+        balQuery.addBindValue(static_cast<qlonglong>(delta));
+        balQuery.addBindValue(static_cast<qlonglong>(line.accountId));
+        if (!balQuery.exec()) {
+            m_lastError = balQuery.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+    }
+
+    // Mark original as voided — in same transaction
     QSqlQuery updateQuery(m_db);
     updateQuery.prepare("UPDATE journal_entries SET description = ? WHERE id = ?");
     updateQuery.addBindValue("[VOIDED] " + original.description);
     updateQuery.addBindValue(static_cast<qlonglong>(entryId));
     if (!updateQuery.exec()) {
         m_lastError = updateQuery.lastError().text();
+        m_db.rollback();
         return false;
     }
 
+    m_db.commit();
     logAudit("VOID_JOURNAL_ENTRY", QString("Voided entry #%1: %2").arg(entryId).arg(original.description));
     return true;
 }

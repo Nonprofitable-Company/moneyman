@@ -45,9 +45,7 @@ ImportCsvDialog::ImportCsvDialog(Database *db, QWidget *parent)
     connect(importBtn, &QPushButton::clicked, this, &ImportCsvDialog::onImport);
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
 
-    // Enable import only after file is loaded
-    connect(this, &ImportCsvDialog::destroyed, this, []{}); // placeholder
-    m_preview->setProperty("importBtn", QVariant::fromValue(static_cast<void*>(importBtn)));
+    m_importBtn = importBtn;
 }
 
 void ImportCsvDialog::onBrowse()
@@ -95,11 +93,7 @@ void ImportCsvDialog::onBrowse()
     m_statusLabel->setText(QString("Preview: %1 accounts to import from %2")
         .arg(m_preview->rowCount()).arg(path));
 
-    // Enable import button
-    auto *importBtn = static_cast<QPushButton*>(
-        m_preview->property("importBtn").value<void*>());
-    if (importBtn)
-        importBtn->setEnabled(m_preview->rowCount() > 0);
+    m_importBtn->setEnabled(m_preview->rowCount() > 0);
 }
 
 void ImportCsvDialog::onImport()

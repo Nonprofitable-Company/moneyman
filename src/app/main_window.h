@@ -37,6 +37,7 @@ private:
     void setupStatusBar();
 
     Database *m_database;
+    QString m_passphrase;
     AccountsWidget *m_accountsWidget;
     QDockWidget *m_accountsDock;
     QTabWidget *m_reportTabs;

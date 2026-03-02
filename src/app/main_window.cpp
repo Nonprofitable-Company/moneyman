@@ -46,12 +46,15 @@ MainWindow::MainWindow(QWidget *parent)
     // Prompt for encryption passphrase
     PasswordDialog pwDialog(PasswordDialog::Unlock, this);
     if (pwDialog.exec() != QDialog::Accepted) {
-        // User cancelled — open with default key so UI still loads
-        m_database->open();
-    } else if (!m_database->open(QString(), pwDialog.password())) {
-        QMessageBox::critical(this, "Database Error",
-            "Failed to open database: " + m_database->lastError()
-            + "\n\nThe passphrase may be incorrect.");
+        QMessageBox::warning(this, "No Passphrase",
+            "A passphrase is required to open the database.");
+    } else {
+        m_passphrase = pwDialog.password();
+        if (!m_database->open(QString(), m_passphrase)) {
+            QMessageBox::critical(this, "Database Error",
+                "Failed to open database: " + m_database->lastError()
+                + "\n\nThe passphrase may be incorrect.");
+        }
     }
 }
 
@@ -234,7 +237,7 @@ void MainWindow::onBackup()
 
     bool ok = QFile::copy(srcPath, dest);
 
-    if (!m_database->open(srcPath)) {
+    if (!m_database->open(srcPath, m_passphrase)) {
         QMessageBox::critical(this, "Error", "Failed to reopen database after backup.");
         return;
     }
@@ -270,11 +273,11 @@ void MainWindow::onRestore()
     if (!ok) {
         QMessageBox::critical(this, "Restore Failed",
             "Could not copy backup file.");
-        m_database->open(destPath);
+        m_database->open(destPath, m_passphrase);
         return;
     }
 
-    if (!m_database->open(destPath)) {
+    if (!m_database->open(destPath, m_passphrase)) {
         QMessageBox::critical(this, "Error",
             "Failed to open restored database: " + m_database->lastError());
         return;
@@ -293,6 +296,7 @@ void MainWindow::onChangeKey()
         return;
 
     if (m_database->changeEncryptionKey(dialog.newPassword())) {
+        m_passphrase = dialog.newPassword();
         statusBar()->showMessage("Encryption key changed successfully", 5000);
     } else {
         QMessageBox::warning(this, "Error",

@@ -9,6 +9,8 @@
 #include <QTextStream>
 #include "utils/csv_import.h"
 
+static const QString TEST_KEY = "test_passphrase";
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -23,7 +25,7 @@ TEST_CASE("Database open and schema creation", "[db]")
 
     Database db;
     QString path = tmpDir.path() + "/test.db";
-    REQUIRE(db.open(path));
+    REQUIRE(db.open(path, TEST_KEY));
     REQUIRE(db.isOpen());
 
     db.close();
@@ -36,7 +38,7 @@ TEST_CASE("Account CRUD", "[db]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     SECTION("create and retrieve accounts") {
         REQUIRE(db.createAccount(1000, "Cash", "asset"));
@@ -130,7 +132,7 @@ TEST_CASE("Journal entry posting", "[db]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     REQUIRE(db.createAccount(1000, "Cash", "asset"));
     REQUIRE(db.createAccount(4000, "Sales", "revenue"));
@@ -173,7 +175,7 @@ TEST_CASE("Fiscal period closing", "[db][fiscal]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     // Set up chart of accounts
     REQUIRE(db.createAccount(1000, "Cash", "asset"));
@@ -311,7 +313,7 @@ TEST_CASE("Void journal entry", "[db][void]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     REQUIRE(db.createAccount(1000, "Cash", "asset"));
     REQUIRE(db.createAccount(4000, "Sales Revenue", "revenue"));
@@ -382,7 +384,7 @@ TEST_CASE("Journal templates", "[db][template]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     REQUIRE(db.createAccount(1000, "Cash", "asset"));
     REQUIRE(db.createAccount(5000, "Rent Expense", "expense"));
@@ -439,7 +441,7 @@ TEST_CASE("Audit log", "[db][audit]")
     REQUIRE(tmpDir.isValid());
 
     Database db;
-    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
 
     SECTION("records account creation") {
         REQUIRE(db.allAuditLog().empty());
@@ -511,7 +513,7 @@ TEST_CASE("Database backup and restore", "[db][backup]")
     // Create original database with data
     {
         Database db;
-        REQUIRE(db.open(origPath));
+        REQUIRE(db.open(origPath, TEST_KEY));
         REQUIRE(db.createAccount(1000, "Cash", "asset"));
         REQUIRE(db.createAccount(4000, "Sales", "revenue"));
         auto cash = db.accountByCode(1000);
@@ -531,7 +533,7 @@ TEST_CASE("Database backup and restore", "[db][backup]")
     // Modify original
     {
         Database db;
-        REQUIRE(db.open(origPath));
+        REQUIRE(db.open(origPath, TEST_KEY));
         REQUIRE(db.createAccount(2000, "AP", "liability"));
         REQUIRE(db.allAccounts().size() == 3);
         db.close();
@@ -543,7 +545,7 @@ TEST_CASE("Database backup and restore", "[db][backup]")
 
     {
         Database db;
-        REQUIRE(db.open(origPath));
+        REQUIRE(db.open(origPath, TEST_KEY));
         auto accounts = db.allAccounts();
         REQUIRE(accounts.size() == 2);
         REQUIRE(db.accountByCode(1000).balanceCents == 50000);
