@@ -16,6 +16,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include "utils/csv_export.h"
+#include "utils/print_report.h"
 
 static const int EntryIdRole = Qt::UserRole + 1;
 
@@ -69,6 +70,10 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
         "Refresh", this, &GeneralLedgerWidget::refresh);
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &GeneralLedgerWidget::exportCsv);
+    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+        "Export PDF", this, [this]() {
+            printReportToPdf(m_table, "General Ledger", this, "general_ledger.pdf");
+        });
 
     auto *dateBar = new QHBoxLayout;
     dateBar->setContentsMargins(4, 0, 4, 0);

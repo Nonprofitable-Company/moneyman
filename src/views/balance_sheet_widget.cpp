@@ -9,6 +9,7 @@
 #include <QApplication>
 #include <QStyle>
 #include "utils/csv_export.h"
+#include "utils/print_report.h"
 
 BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -34,6 +35,10 @@ BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
         "Refresh", this, &BalanceSheetWidget::refresh);
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &BalanceSheetWidget::exportCsv);
+    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+        "Export PDF", this, [this]() {
+            printReportToPdf(m_table, "Balance Sheet", this, "balance_sheet.pdf");
+        });
 
     m_statusLabel->setAlignment(Qt::AlignCenter);
 

@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QStyle>
 #include "utils/csv_export.h"
+#include "utils/print_report.h"
 
 AuditLogWidget::AuditLogWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -33,6 +34,10 @@ AuditLogWidget::AuditLogWidget(Database *db, QWidget *parent)
         "Refresh", this, &AuditLogWidget::refresh);
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &AuditLogWidget::exportCsv);
+    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+        "Export PDF", this, [this]() {
+            printReportToPdf(m_table, "Audit Log", this, "audit_log.pdf");
+        });
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);

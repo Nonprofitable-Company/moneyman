@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QStyle>
 #include "utils/csv_export.h"
+#include "utils/print_report.h"
 
 IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -36,6 +37,10 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
         "Refresh", this, &IncomeStatementWidget::refresh);
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &IncomeStatementWidget::exportCsv);
+    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+        "Export PDF", this, [this]() {
+            printReportToPdf(m_table, "Income Statement", this, "income_statement.pdf");
+        });
 
     auto boldFont = m_netIncomeLabel->font();
     boldFont.setBold(true);

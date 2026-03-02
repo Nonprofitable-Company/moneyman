@@ -11,6 +11,7 @@
 #include <QApplication>
 #include <QStyle>
 #include "utils/csv_export.h"
+#include "utils/print_report.h"
 
 TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -39,6 +40,10 @@ TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
         "Refresh", this, &TrialBalanceWidget::refresh);
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &TrialBalanceWidget::exportCsv);
+    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+        "Export PDF", this, [this]() {
+            printReportToPdf(m_table, "Trial Balance", this, "trial_balance.pdf");
+        });
 
     // Totals row
     auto boldFont = m_debitTotalLabel->font();

@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC ON)
 # Treat warnings as errors
 add_compile_options(-Wall -Wextra -Werror)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
 
@@ -52,6 +52,8 @@ add_library(moneyman_lib STATIC
     src/views/import_csv_dialog.h
     src/utils/csv_import.cpp
     src/utils/csv_import.h
+    src/utils/print_report.cpp
+    src/utils/print_report.h
     src/utils/csv_export.cpp
     src/utils/csv_export.h
     src/app/main_window.cpp
@@ -67,6 +69,7 @@ target_link_libraries(moneyman_lib PUBLIC
     Qt6::Core
     Qt6::Widgets
     Qt6::Sql
+    Qt6::PrintSupport
     ${SQLCIPHER_LIBRARIES}
 )
 
