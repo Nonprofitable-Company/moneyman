@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <QApplication>
 #include <QStyle>
+#include "utils/csv_export.h"
 
 GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -37,6 +38,8 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     toolbar->addWidget(m_accountCombo);
     toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
         "Refresh", this, &GeneralLedgerWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+        "Export CSV", this, &GeneralLedgerWidget::exportCsv);
 
     connect(m_accountCombo, &QComboBox::currentIndexChanged,
             this, &GeneralLedgerWidget::onAccountChanged);
@@ -128,4 +131,9 @@ void GeneralLedgerWidget::loadLedger(int64_t accountId)
         m_table->setItem(i, 3, creditItem);
         m_table->setItem(i, 4, balItem);
     }
+}
+
+void GeneralLedgerWidget::exportCsv()
+{
+    exportTableToCsv(m_table, this, "general_ledger.csv");
 }

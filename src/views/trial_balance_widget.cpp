@@ -10,6 +10,7 @@
 #include <QToolBar>
 #include <QApplication>
 #include <QStyle>
+#include "utils/csv_export.h"
 
 TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -36,6 +37,8 @@ TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
     auto *toolbar = new QToolBar(this);
     toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
         "Refresh", this, &TrialBalanceWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+        "Export CSV", this, &TrialBalanceWidget::exportCsv);
 
     // Totals row
     auto boldFont = m_debitTotalLabel->font();
@@ -131,4 +134,9 @@ void TrialBalanceWidget::refresh()
             QString::number(qAbs(diff), 'f', 2)));
         m_statusLabel->setStyleSheet("color: red; font-weight: bold;");
     }
+}
+
+void TrialBalanceWidget::exportCsv()
+{
+    exportTableToCsv(m_table, this, "trial_balance.csv");
 }

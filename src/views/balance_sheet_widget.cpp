@@ -8,6 +8,7 @@
 #include <QToolBar>
 #include <QApplication>
 #include <QStyle>
+#include "utils/csv_export.h"
 
 BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -31,6 +32,8 @@ BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     auto *toolbar = new QToolBar(this);
     toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
         "Refresh", this, &BalanceSheetWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+        "Export CSV", this, &BalanceSheetWidget::exportCsv);
 
     m_statusLabel->setAlignment(Qt::AlignCenter);
 
@@ -160,4 +163,9 @@ void BalanceSheetWidget::refresh()
             QString::number(qAbs(diff), 'f', 2)));
         m_statusLabel->setStyleSheet("color: red; font-weight: bold;");
     }
+}
+
+void BalanceSheetWidget::exportCsv()
+{
+    exportTableToCsv(m_table, this, "balance_sheet.csv");
 }

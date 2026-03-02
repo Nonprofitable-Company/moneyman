@@ -10,6 +10,7 @@
 #include <QFont>
 #include <QApplication>
 #include <QStyle>
+#include "utils/csv_export.h"
 
 IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -33,6 +34,8 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     auto *toolbar = new QToolBar(this);
     toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
         "Refresh", this, &IncomeStatementWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+        "Export CSV", this, &IncomeStatementWidget::exportCsv);
 
     auto boldFont = m_netIncomeLabel->font();
     boldFont.setBold(true);
@@ -127,4 +130,9 @@ void IncomeStatementWidget::refresh()
     m_netIncomeLabel->setStyleSheet(netIncome >= 0
         ? "color: green; font-weight: bold;"
         : "color: red; font-weight: bold;");
+}
+
+void IncomeStatementWidget::exportCsv()
+{
+    exportTableToCsv(m_table, this, "income_statement.csv");
 }

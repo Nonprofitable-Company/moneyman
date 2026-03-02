@@ -16,6 +16,7 @@ public:
 
 public slots:
     void refresh();
+    void exportCsv();
 
 private:
     Database *m_db;
