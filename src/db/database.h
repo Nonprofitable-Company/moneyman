@@ -54,9 +54,12 @@ public:
     bool postJournalEntry(const QString &date, const QString &description,
                           const std::vector<JournalLineRow> &lines);
     std::vector<JournalEntryRow> allJournalEntries() const;
+    JournalEntryRow journalEntryById(int64_t id) const;
+    bool voidJournalEntry(int64_t entryId);
 
     // Ledger: lines for a specific account, joined with entry date/description
     struct LedgerRow {
+        int64_t entryId = 0;
         QString date;
         QString description;
         int64_t debitCents = 0;

@@ -23,6 +23,7 @@ public slots:
 private slots:
     void onAccountChanged(int index);
     void onDateFilterChanged();
+    void onContextMenu(const QPoint &pos);
 
 private:
     void populateAccountSelector();

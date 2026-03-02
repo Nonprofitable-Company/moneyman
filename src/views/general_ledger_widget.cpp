@@ -13,7 +13,11 @@
 #include <QStyle>
 #include <QDateEdit>
 #include <QCheckBox>
+#include <QMenu>
+#include <QMessageBox>
 #include "utils/csv_export.h"
+
+static const int EntryIdRole = Qt::UserRole + 1;
 
 GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -37,6 +41,9 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     m_table->setColumnWidth(2, 100);
     m_table->setColumnWidth(3, 100);
     m_table->setColumnWidth(4, 110);
+    m_table->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_table, &QTableWidget::customContextMenuRequested,
+            this, &GeneralLedgerWidget::onContextMenu);
 
     QDate today = QDate::currentDate();
     m_fromDate->setDisplayFormat("yyyy-MM-dd");
@@ -92,6 +99,42 @@ void GeneralLedgerWidget::onDateFilterChanged()
 {
     int index = m_accountCombo->currentIndex();
     onAccountChanged(index);
+}
+
+void GeneralLedgerWidget::onContextMenu(const QPoint &pos)
+{
+    auto *item = m_table->itemAt(pos);
+    if (!item) return;
+
+    int row = item->row();
+    auto *dateItem = m_table->item(row, 0);
+    if (!dateItem) return;
+
+    int64_t entryId = dateItem->data(EntryIdRole).toLongLong();
+    if (entryId <= 0) return;
+
+    QString desc = m_table->item(row, 1) ? m_table->item(row, 1)->text() : QString();
+    if (desc.startsWith("[VOIDED]") || desc.startsWith("[VOID]")) return;
+
+    QMenu menu(this);
+    menu.addAction("Void This Entry", this, [this, entryId]() {
+        auto reply = QMessageBox::question(this, "Void Entry",
+            QString("Void journal entry #%1?\n\n"
+                    "This will create a reversing entry that cancels "
+                    "the original transaction.").arg(entryId),
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply != QMessageBox::Yes) return;
+
+        if (m_db->voidJournalEntry(entryId)) {
+            refresh();
+        } else {
+            QMessageBox::critical(this, "Error",
+                "Failed to void entry: " + m_db->lastError());
+        }
+    });
+
+    menu.exec(m_table->viewport()->mapToGlobal(pos));
 }
 
 void GeneralLedgerWidget::populateAccountSelector()
@@ -165,6 +208,7 @@ void GeneralLedgerWidget::loadLedger(int64_t accountId)
         }
 
         auto *dateItem = new QTableWidgetItem(row.date);
+        dateItem->setData(EntryIdRole, static_cast<qlonglong>(row.entryId));
         auto *descItem = new QTableWidgetItem(row.description);
         auto *debitItem = new QTableWidgetItem(
             row.debitCents > 0 ? QString::number(static_cast<double>(row.debitCents) / 100.0, 'f', 2) : QString());

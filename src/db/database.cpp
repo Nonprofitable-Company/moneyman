@@ -350,7 +350,7 @@ std::vector<Database::LedgerRow> Database::ledgerForAccount(int64_t accountId) c
     std::vector<LedgerRow> result;
     QSqlQuery query(m_db);
     query.prepare(R"(
-        SELECT je.entry_date, je.description, jl.debit_cents, jl.credit_cents
+        SELECT je.id, je.entry_date, je.description, jl.debit_cents, jl.credit_cents
         FROM journal_lines jl
         JOIN journal_entries je ON je.id = jl.entry_id
         WHERE jl.account_id = ? AND je.posted = 1
@@ -361,10 +361,11 @@ std::vector<Database::LedgerRow> Database::ledgerForAccount(int64_t accountId) c
 
     while (query.next()) {
         LedgerRow row;
-        row.date = query.value(0).toString();
-        row.description = query.value(1).toString();
-        row.debitCents = query.value(2).toLongLong();
-        row.creditCents = query.value(3).toLongLong();
+        row.entryId = query.value(0).toLongLong();
+        row.date = query.value(1).toString();
+        row.description = query.value(2).toString();
+        row.debitCents = query.value(3).toLongLong();
+        row.creditCents = query.value(4).toLongLong();
         result.push_back(row);
     }
     return result;
@@ -535,4 +536,84 @@ std::vector<Database::FiscalPeriod> Database::allFiscalPeriods() const
         result.push_back(fp);
     }
     return result;
+}
+
+JournalEntryRow Database::journalEntryById(int64_t id) const
+{
+    JournalEntryRow entry;
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id, entry_date, description, posted FROM journal_entries WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+    query.exec();
+
+    if (query.next()) {
+        entry.id = query.value(0).toLongLong();
+        entry.date = query.value(1).toString();
+        entry.description = query.value(2).toString();
+        entry.posted = query.value(3).toBool();
+
+        QSqlQuery lineQuery(m_db);
+        lineQuery.prepare("SELECT id, entry_id, account_id, debit_cents, credit_cents FROM journal_lines WHERE entry_id = ?");
+        lineQuery.addBindValue(static_cast<qlonglong>(entry.id));
+        lineQuery.exec();
+
+        while (lineQuery.next()) {
+            JournalLineRow line;
+            line.id = lineQuery.value(0).toLongLong();
+            line.entryId = lineQuery.value(1).toLongLong();
+            line.accountId = lineQuery.value(2).toLongLong();
+            line.debitCents = lineQuery.value(3).toLongLong();
+            line.creditCents = lineQuery.value(4).toLongLong();
+            entry.lines.push_back(line);
+        }
+    }
+    return entry;
+}
+
+bool Database::voidJournalEntry(int64_t entryId)
+{
+    JournalEntryRow original = journalEntryById(entryId);
+    if (original.id == 0) {
+        m_lastError = "Journal entry not found";
+        return false;
+    }
+
+    if (!original.posted) {
+        m_lastError = "Entry is not posted";
+        return false;
+    }
+
+    if (original.description.startsWith("[VOIDED]")) {
+        m_lastError = "Entry is already voided";
+        return false;
+    }
+
+    // Build reversed lines (swap debits and credits)
+    std::vector<JournalLineRow> reversedLines;
+    for (const auto &line : original.lines) {
+        JournalLineRow rev;
+        rev.accountId = line.accountId;
+        rev.debitCents = line.creditCents;
+        rev.creditCents = line.debitCents;
+        reversedLines.push_back(rev);
+    }
+
+    QString reversalDesc = QString("[VOID] Reversal of entry #%1: %2")
+        .arg(entryId).arg(original.description);
+
+    if (!postJournalEntry(original.date, reversalDesc, reversedLines)) {
+        return false;
+    }
+
+    // Mark original as voided
+    QSqlQuery updateQuery(m_db);
+    updateQuery.prepare("UPDATE journal_entries SET description = ? WHERE id = ?");
+    updateQuery.addBindValue("[VOIDED] " + original.description);
+    updateQuery.addBindValue(static_cast<qlonglong>(entryId));
+    if (!updateQuery.exec()) {
+        m_lastError = updateQuery.lastError().text();
+        return false;
+    }
+
+    return true;
 }

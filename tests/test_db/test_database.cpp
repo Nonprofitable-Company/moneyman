@@ -239,3 +239,74 @@ TEST_CASE("Fiscal period closing", "[db][fiscal]")
         REQUIRE_FALSE(db.closePeriod("2026-07-01", "2026-12-31"));
     }
 }
+
+TEST_CASE("Void journal entry", "[db][void]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    Database db;
+    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+
+    REQUIRE(db.createAccount(1000, "Cash", "asset"));
+    REQUIRE(db.createAccount(4000, "Sales Revenue", "revenue"));
+
+    auto cash = db.accountByCode(1000);
+    auto sales = db.accountByCode(4000);
+
+    std::vector<JournalLineRow> lines = {
+        {0, 0, cash.id, 75000, 0},
+        {0, 0, sales.id, 0, 75000},
+    };
+    REQUIRE(db.postJournalEntry("2026-05-01", "Cash sale", lines));
+
+    // Verify initial balances
+    REQUIRE(db.accountByCode(1000).balanceCents == 75000);
+    REQUIRE(db.accountByCode(4000).balanceCents == 75000);
+
+    SECTION("voiding zeros out balance impact") {
+        auto entries = db.allJournalEntries();
+        REQUIRE(entries.size() == 1);
+        int64_t entryId = entries[0].id;
+
+        REQUIRE(db.voidJournalEntry(entryId));
+
+        // Balances should be back to zero
+        REQUIRE(db.accountByCode(1000).balanceCents == 0);
+        REQUIRE(db.accountByCode(4000).balanceCents == 0);
+
+        // Original entry marked as voided
+        auto updatedEntry = db.journalEntryById(entryId);
+        REQUIRE(updatedEntry.description.startsWith("[VOIDED]"));
+
+        // Reversing entry created
+        auto allEntries = db.allJournalEntries();
+        REQUIRE(allEntries.size() == 2);
+        REQUIRE(allEntries[1].description.contains("Reversal"));
+
+        // Reversing entry has swapped debits/credits
+        REQUIRE(allEntries[1].lines.size() == 2);
+        // Cash line: original was debit 750, reversal should be credit 750
+        bool foundCashReversal = false;
+        for (const auto &line : allEntries[1].lines) {
+            if (line.accountId == cash.id) {
+                REQUIRE(line.debitCents == 0);
+                REQUIRE(line.creditCents == 75000);
+                foundCashReversal = true;
+            }
+        }
+        REQUIRE(foundCashReversal);
+    }
+
+    SECTION("cannot void already voided entry") {
+        auto entries = db.allJournalEntries();
+        int64_t entryId = entries[0].id;
+
+        REQUIRE(db.voidJournalEntry(entryId));
+        REQUIRE_FALSE(db.voidJournalEntry(entryId));
+    }
+
+    SECTION("cannot void nonexistent entry") {
+        REQUIRE_FALSE(db.voidJournalEntry(99999));
+    }
+}
