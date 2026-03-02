@@ -171,6 +171,17 @@ void MainWindow::setupMenuBar()
         }
     });
 
+    auto *helpMenu = menuBar()->addMenu("&Help");
+    helpMenu->addAction("&About MoneyMan", this, [this]() {
+        QMessageBox::about(this, "About MoneyMan",
+            "<h2>MoneyMan v0.1.0</h2>"
+            "<p>Double-entry bookkeeping for The Nonprofitable Company.</p>"
+            "<p>Features: Chart of Accounts, Journal Entries, Trial Balance, "
+            "General Ledger, Income Statement, Balance Sheet, Audit Log, "
+            "Templates, Fiscal Periods, CSV/PDF Export, Encrypted Database.</p>"
+            "<p>Built with Qt6 and SQLCipher.</p>");
+    });
+
     // Tab navigation shortcuts (Ctrl+1 through Ctrl+8)
     for (int i = 0; i < m_reportTabs->count() && i < 9; ++i) {
         auto *shortcut = new QShortcut(QKeySequence(Qt::CTRL | static_cast<Qt::Key>(Qt::Key_1 + i)), this);
@@ -198,7 +209,7 @@ void MainWindow::setupToolBar()
 
 void MainWindow::setupStatusBar()
 {
-    statusBar()->showMessage("Ready");
+    statusBar()->showMessage("Ready — " + m_database->databasePath());
 }
 
 void MainWindow::onNewJournalEntry()
