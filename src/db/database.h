@@ -50,6 +50,7 @@ public:
     bool createAccount(int code, const QString &name, const QString &type,
                        const QString &currency = "USD");
     bool updateAccount(int64_t id, const QString &name, const QString &type);
+    bool deleteAccount(int64_t id);
     std::vector<AccountRow> allAccounts() const;
     AccountRow accountById(int64_t id) const;
     AccountRow accountByCode(int code) const;

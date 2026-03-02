@@ -79,6 +79,24 @@ void AccountsWidget::onContextMenu(const QPoint &pos)
 
     QMenu menu(this);
     menu.addAction("Edit Account...", this, &AccountsWidget::onEditAccount);
+    menu.addAction("Delete Account...", this, [this]() {
+        QModelIndex proxyIndex = m_tableView->currentIndex();
+        if (!proxyIndex.isValid()) return;
+        QModelIndex sourceIndex = m_proxyModel->mapToSource(proxyIndex);
+        const AccountRow *acct = m_model->accountAt(sourceIndex.row());
+        if (!acct) return;
+
+        auto reply = QMessageBox::question(this, "Delete Account",
+            QString("Delete account %1 — %2?\n\nThis cannot be undone.")
+                .arg(acct->code).arg(acct->name));
+        if (reply != QMessageBox::Yes) return;
+
+        if (!m_db->deleteAccount(acct->id)) {
+            QMessageBox::warning(this, "Cannot Delete", m_db->lastError());
+            return;
+        }
+        m_model->refresh();
+    });
     menu.exec(m_tableView->viewport()->mapToGlobal(pos));
 }
 

@@ -247,6 +247,47 @@ bool Database::updateAccount(int64_t id, const QString &name, const QString &typ
     return true;
 }
 
+bool Database::deleteAccount(int64_t id)
+{
+    // Check for journal lines referencing this account
+    QSqlQuery checkQuery(m_db);
+    checkQuery.prepare("SELECT COUNT(*) FROM journal_lines WHERE account_id = ?");
+    checkQuery.addBindValue(static_cast<qlonglong>(id));
+    if (!checkQuery.exec() || !checkQuery.next()) {
+        m_lastError = "Failed to check account usage";
+        return false;
+    }
+    if (checkQuery.value(0).toLongLong() > 0) {
+        m_lastError = "Cannot delete account: it has journal entries";
+        return false;
+    }
+
+    // Also check template lines
+    QSqlQuery templateCheck(m_db);
+    templateCheck.prepare("SELECT COUNT(*) FROM template_lines WHERE account_id = ?");
+    templateCheck.addBindValue(static_cast<qlonglong>(id));
+    if (!templateCheck.exec() || !templateCheck.next()) {
+        m_lastError = "Failed to check template usage";
+        return false;
+    }
+    if (templateCheck.value(0).toLongLong() > 0) {
+        m_lastError = "Cannot delete account: it is used in a template";
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare("DELETE FROM accounts WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+    if (!query.exec()) {
+        m_lastError = query.lastError().text();
+        return false;
+    }
+
+    AccountRow acct = accountById(id);
+    logAudit("DELETE_ACCOUNT", QString("Deleted account #%1").arg(id));
+    return true;
+}
+
 std::vector<AccountRow> Database::allAccounts() const
 {
     std::vector<AccountRow> result;

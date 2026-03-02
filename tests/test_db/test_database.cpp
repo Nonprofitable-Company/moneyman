@@ -99,6 +99,29 @@ TEST_CASE("Account CRUD", "[db]")
         REQUIRE(updated.name == "Misc Revenue");
         REQUIRE(updated.type == "revenue");
     }
+
+    SECTION("delete unused account") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        auto acct = db.accountByCode(1000);
+        REQUIRE(db.deleteAccount(acct.id));
+        REQUIRE(db.allAccounts().empty());
+    }
+
+    SECTION("cannot delete account with journal entries") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(2000, "Revenue", "revenue"));
+        auto cash = db.accountByCode(1000);
+        auto rev = db.accountByCode(2000);
+
+        std::vector<JournalLineRow> lines;
+        JournalLineRow l1; l1.accountId = cash.id; l1.debitCents = 1000;
+        JournalLineRow l2; l2.accountId = rev.id; l2.creditCents = 1000;
+        lines.push_back(l1); lines.push_back(l2);
+        REQUIRE(db.postJournalEntry("2025-01-01", "Test", lines));
+
+        REQUIRE_FALSE(db.deleteAccount(cash.id));
+        REQUIRE(db.allAccounts().size() == 2);
+    }
 }
 
 TEST_CASE("Journal entry posting", "[db]")
