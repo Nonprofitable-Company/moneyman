@@ -18,6 +18,8 @@
 #include <QMessageBox>
 #include <QApplication>
 #include <QStyle>
+#include <QFileDialog>
+#include <QFile>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -79,6 +81,9 @@ void MainWindow::setupMenuBar()
     auto *style = QApplication::style();
 
     auto *fileMenu = menuBar()->addMenu("&File");
+    fileMenu->addAction("&Backup Database...", this, &MainWindow::onBackup);
+    fileMenu->addAction("&Restore Database...", this, &MainWindow::onRestore);
+    fileMenu->addSeparator();
     fileMenu->addAction("Close &Period...", this, [this]() {
         ClosePeriodDialog dialog(m_database, this);
         if (dialog.exec() == QDialog::Accepted) {
@@ -139,6 +144,70 @@ void MainWindow::onNewJournalEntry()
         refreshAllReports();
         statusBar()->showMessage("Journal entry posted successfully", 5000);
     }
+}
+
+void MainWindow::onBackup()
+{
+    QString dest = QFileDialog::getSaveFileName(this, "Backup Database",
+        "moneyman_backup.db", "SQLite Database (*.db)");
+    if (dest.isEmpty()) return;
+
+    // Close DB, copy file, reopen
+    QString srcPath = m_database->databasePath();
+    m_database->close();
+
+    bool ok = QFile::copy(srcPath, dest);
+
+    if (!m_database->open(srcPath)) {
+        QMessageBox::critical(this, "Error", "Failed to reopen database after backup.");
+        return;
+    }
+
+    if (ok) {
+        statusBar()->showMessage("Backup saved to " + dest, 5000);
+        m_database->logAudit("BACKUP", "Backed up to " + dest);
+    } else {
+        QMessageBox::warning(this, "Backup Failed",
+            "Could not copy database file. The destination may already exist.");
+    }
+}
+
+void MainWindow::onRestore()
+{
+    QString src = QFileDialog::getOpenFileName(this, "Restore Database",
+        QString(), "SQLite Database (*.db)");
+    if (src.isEmpty()) return;
+
+    auto reply = QMessageBox::warning(this, "Confirm Restore",
+        "This will replace all current data with the backup.\n\n"
+        "This action cannot be undone. Continue?",
+        QMessageBox::Yes | QMessageBox::No);
+    if (reply != QMessageBox::Yes) return;
+
+    QString destPath = m_database->databasePath();
+    m_database->close();
+
+    // Remove current and copy backup over
+    QFile::remove(destPath);
+    bool ok = QFile::copy(src, destPath);
+
+    if (!ok) {
+        QMessageBox::critical(this, "Restore Failed",
+            "Could not copy backup file.");
+        m_database->open(destPath);
+        return;
+    }
+
+    if (!m_database->open(destPath)) {
+        QMessageBox::critical(this, "Error",
+            "Failed to open restored database: " + m_database->lastError());
+        return;
+    }
+
+    m_database->logAudit("RESTORE", "Restored from " + src);
+    m_accountsWidget->model()->refresh();
+    refreshAllReports();
+    statusBar()->showMessage("Database restored from " + src, 5000);
 }
 
 void MainWindow::refreshAllReports()

@@ -23,6 +23,8 @@ public:
 
 private slots:
     void onNewJournalEntry();
+    void onBackup();
+    void onRestore();
     void refreshAllReports();
 
 private:

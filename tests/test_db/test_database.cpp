@@ -473,3 +473,54 @@ TEST_CASE("Audit log", "[db][audit]")
         REQUIRE(log[0].id > log[1].id);
     }
 }
+
+TEST_CASE("Database backup and restore", "[db][backup]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    QString origPath = tmpDir.path() + "/original.db";
+    QString backupPath = tmpDir.path() + "/backup.db";
+
+    // Create original database with data
+    {
+        Database db;
+        REQUIRE(db.open(origPath));
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(4000, "Sales", "revenue"));
+        auto cash = db.accountByCode(1000);
+        auto sales = db.accountByCode(4000);
+        std::vector<JournalLineRow> lines = {
+            {0, 0, cash.id, 50000, 0},
+            {0, 0, sales.id, 0, 50000},
+        };
+        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines));
+        REQUIRE(db.databasePath() == origPath);
+        db.close();
+    }
+
+    // Copy as backup
+    REQUIRE(QFile::copy(origPath, backupPath));
+
+    // Modify original
+    {
+        Database db;
+        REQUIRE(db.open(origPath));
+        REQUIRE(db.createAccount(2000, "AP", "liability"));
+        REQUIRE(db.allAccounts().size() == 3);
+        db.close();
+    }
+
+    // Restore from backup (should have only 2 accounts)
+    QFile::remove(origPath);
+    REQUIRE(QFile::copy(backupPath, origPath));
+
+    {
+        Database db;
+        REQUIRE(db.open(origPath));
+        auto accounts = db.allAccounts();
+        REQUIRE(accounts.size() == 2);
+        REQUIRE(db.accountByCode(1000).balanceCents == 50000);
+        REQUIRE(db.accountByCode(2000).id == 0); // AP was not in backup
+    }
+}

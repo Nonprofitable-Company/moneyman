@@ -44,6 +44,7 @@ public:
     void close();
     bool isOpen() const;
     QString lastError() const;
+    QString databasePath() const { return m_dbPath; }
 
     // Accounts
     bool createAccount(int code, const QString &name, const QString &type,
