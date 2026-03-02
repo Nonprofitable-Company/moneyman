@@ -10,6 +10,7 @@ class GeneralLedgerWidget;
 class IncomeStatementWidget;
 class BalanceSheetWidget;
 class QTabWidget;
+class QDockWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -31,6 +32,7 @@ private:
 
     Database *m_database;
     AccountsWidget *m_accountsWidget;
+    QDockWidget *m_accountsDock;
     QTabWidget *m_reportTabs;
     TrialBalanceWidget *m_trialBalanceWidget;
     GeneralLedgerWidget *m_generalLedgerWidget;

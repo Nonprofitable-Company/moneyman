@@ -8,6 +8,10 @@
 #include <QToolBar>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QApplication>
+#include <QStyle>
+#include <QShortcut>
+#include <QKeySequence>
 
 AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -18,14 +22,23 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     m_tableView->setModel(m_model);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableView->setAlternatingRowColors(true);
+    m_tableView->setShowGrid(true);
     m_tableView->horizontalHeader()->setStretchLastSection(true);
+    m_tableView->horizontalHeader()->setSectionResizeMode(AccountModel::ColName, QHeaderView::Stretch);
     m_tableView->verticalHeader()->hide();
-    m_tableView->setColumnWidth(AccountModel::ColCode, 80);
-    m_tableView->setColumnWidth(AccountModel::ColName, 250);
-    m_tableView->setColumnWidth(AccountModel::ColType, 100);
+    m_tableView->setColumnWidth(AccountModel::ColCode, 70);
+    m_tableView->setColumnWidth(AccountModel::ColType, 90);
+    m_tableView->setColumnWidth(AccountModel::ColBalance, 100);
 
+    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction("Add Account", this, &AccountsWidget::onAddAccount);
+    toolbar->addAction(
+        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+        "Add Account (Ctrl+A)", this, &AccountsWidget::onAddAccount);
+
+    // Ctrl+A shortcut for Add Account
+    auto *shortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_A), this);
+    connect(shortcut, &QShortcut::activated, this, &AccountsWidget::onAddAccount);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);

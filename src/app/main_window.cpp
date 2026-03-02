@@ -14,11 +14,14 @@
 #include <QDockWidget>
 #include <QTabWidget>
 #include <QMessageBox>
+#include <QApplication>
+#include <QStyle>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_database(new Database(this))
     , m_accountsWidget(nullptr)
+    , m_accountsDock(nullptr)
     , m_reportTabs(nullptr)
     , m_trialBalanceWidget(nullptr)
     , m_generalLedgerWidget(nullptr)
@@ -45,10 +48,11 @@ void MainWindow::setupUi()
 
     // Chart of Accounts as a dock widget on the left
     m_accountsWidget = new AccountsWidget(m_database, this);
-    auto *dock = new QDockWidget("Chart of Accounts", this);
-    dock->setWidget(m_accountsWidget);
-    dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-    addDockWidget(Qt::LeftDockWidgetArea, dock);
+    m_accountsDock = new QDockWidget("Chart of Accounts", this);
+    m_accountsDock->setWidget(m_accountsWidget);
+    m_accountsDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable
+                                | QDockWidget::DockWidgetClosable);
+    addDockWidget(Qt::LeftDockWidgetArea, m_accountsDock);
 
     // Reports as tabbed central widget
     m_reportTabs = new QTabWidget(this);
@@ -67,25 +71,45 @@ void MainWindow::setupUi()
 
 void MainWindow::setupMenuBar()
 {
+    auto *style = QApplication::style();
+
     auto *fileMenu = menuBar()->addMenu("&File");
-    fileMenu->addAction("&Quit", QKeySequence::Quit, this, &QWidget::close);
+    auto *quitAction = fileMenu->addAction(
+        style->standardIcon(QStyle::SP_DialogCloseButton),
+        "&Quit", QKeySequence::Quit, this, &QWidget::close);
+    Q_UNUSED(quitAction)
 
     auto *txnMenu = menuBar()->addMenu("&Transactions");
-    txnMenu->addAction("&New Journal Entry...", QKeySequence(Qt::CTRL | Qt::Key_J),
-                        this, &MainWindow::onNewJournalEntry);
+    txnMenu->addAction(
+        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+        "&New Journal Entry...", QKeySequence(Qt::CTRL | Qt::Key_J),
+        this, &MainWindow::onNewJournalEntry);
 
     auto *reportsMenu = menuBar()->addMenu("&Reports");
-    reportsMenu->addAction("Refresh &All Reports", QKeySequence(Qt::CTRL | Qt::Key_R),
-                           this, &MainWindow::refreshAllReports);
+    reportsMenu->addAction(
+        style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh &All Reports", QKeySequence(Qt::CTRL | Qt::Key_R),
+        this, &MainWindow::refreshAllReports);
+
+    // Window menu for toggling dock visibility
+    auto *windowMenu = menuBar()->addMenu("&Window");
+    windowMenu->addAction(m_accountsDock->toggleViewAction());
 }
 
 void MainWindow::setupToolBar()
 {
+    auto *style = QApplication::style();
     auto *toolbar = addToolBar("Main");
     toolbar->setMovable(false);
-    toolbar->addAction("New Journal Entry", this, &MainWindow::onNewJournalEntry);
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    toolbar->addAction(
+        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+        "New Journal Entry", this, &MainWindow::onNewJournalEntry);
     toolbar->addSeparator();
-    toolbar->addAction("Refresh Reports", this, &MainWindow::refreshAllReports);
+    toolbar->addAction(
+        style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh Reports", this, &MainWindow::refreshAllReports);
 }
 
 void MainWindow::setupStatusBar()

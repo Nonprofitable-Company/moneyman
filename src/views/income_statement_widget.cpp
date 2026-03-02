@@ -8,6 +8,8 @@
 #include <QLabel>
 #include <QToolBar>
 #include <QFont>
+#include <QApplication>
+#include <QStyle>
 
 IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -20,12 +22,17 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setAlternatingRowColors(true);
-    m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->setShowGrid(true);
+    m_table->horizontalHeader()->setStretchLastSection(false);
+    m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
     m_table->verticalHeader()->hide();
-    m_table->setColumnWidth(0, 300);
+    m_table->setColumnWidth(1, 130);
 
+    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction("Refresh", this, &IncomeStatementWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh", this, &IncomeStatementWidget::refresh);
 
     auto boldFont = m_netIncomeLabel->font();
     boldFont.setBold(true);

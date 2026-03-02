@@ -8,6 +8,8 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QToolBar>
+#include <QApplication>
+#include <QStyle>
 
 TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -22,15 +24,18 @@ TrialBalanceWidget::TrialBalanceWidget(Database *db, QWidget *parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setAlternatingRowColors(true);
-    m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->setShowGrid(true);
+    m_table->horizontalHeader()->setStretchLastSection(false);
+    m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_table->verticalHeader()->hide();
     m_table->setColumnWidth(0, 70);
-    m_table->setColumnWidth(1, 250);
-    m_table->setColumnWidth(2, 120);
-    m_table->setColumnWidth(3, 120);
+    m_table->setColumnWidth(2, 110);
+    m_table->setColumnWidth(3, 110);
 
+    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction("Refresh", this, &TrialBalanceWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh", this, &TrialBalanceWidget::refresh);
 
     // Totals row
     auto boldFont = m_debitTotalLabel->font();

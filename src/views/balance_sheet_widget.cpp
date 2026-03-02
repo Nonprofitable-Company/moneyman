@@ -6,6 +6,8 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QToolBar>
+#include <QApplication>
+#include <QStyle>
 
 BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -18,12 +20,17 @@ BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setAlternatingRowColors(true);
-    m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->setShowGrid(true);
+    m_table->horizontalHeader()->setStretchLastSection(false);
+    m_table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
     m_table->verticalHeader()->hide();
-    m_table->setColumnWidth(0, 300);
+    m_table->setColumnWidth(1, 130);
 
+    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction("Refresh", this, &BalanceSheetWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh", this, &BalanceSheetWidget::refresh);
 
     m_statusLabel->setAlignment(Qt::AlignCenter);
 

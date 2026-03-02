@@ -8,6 +8,8 @@
 #include <QHeaderView>
 #include <QToolBar>
 #include <QLabel>
+#include <QApplication>
+#include <QStyle>
 
 GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -20,18 +22,21 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setAlternatingRowColors(true);
-    m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->setShowGrid(true);
+    m_table->horizontalHeader()->setStretchLastSection(false);
+    m_table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_table->verticalHeader()->hide();
-    m_table->setColumnWidth(0, 100);
-    m_table->setColumnWidth(1, 250);
+    m_table->setColumnWidth(0, 90);
     m_table->setColumnWidth(2, 100);
     m_table->setColumnWidth(3, 100);
-    m_table->setColumnWidth(4, 100);
+    m_table->setColumnWidth(4, 110);
 
+    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
     toolbar->addWidget(new QLabel(" Account: ", this));
     toolbar->addWidget(m_accountCombo);
-    toolbar->addAction("Refresh", this, &GeneralLedgerWidget::refresh);
+    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+        "Refresh", this, &GeneralLedgerWidget::refresh);
 
     connect(m_accountCombo, &QComboBox::currentIndexChanged,
             this, &GeneralLedgerWidget::onAccountChanged);
