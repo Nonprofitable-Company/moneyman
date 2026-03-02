@@ -43,6 +43,19 @@ AddAccountDialog::AddAccountDialog(QWidget *parent)
     m_currencyCombo->setEditable(true);
     form->addRow("Currency:", m_currencyCombo);
 
+    // Auto-suggest code range when type changes
+    connect(m_typeCombo, &QComboBox::currentIndexChanged, this, [this]() {
+        if (!m_codeSpinBox->isEnabled()) return; // edit mode — don't change code
+        QString type = m_typeCombo->currentData().toString();
+        int base = 1000;
+        if (type == "asset")         base = 1000;
+        else if (type == "liability") base = 2000;
+        else if (type == "equity")   base = 3000;
+        else if (type == "revenue")  base = 4000;
+        else if (type == "expense")  base = 5000;
+        m_codeSpinBox->setValue(base);
+    });
+
     auto *buttons = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
