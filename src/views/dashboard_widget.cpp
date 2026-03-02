@@ -11,6 +11,8 @@
 #include <QApplication>
 #include <QStyle>
 #include <QFont>
+#include <QTableWidget>
+#include <QHeaderView>
 
 static QString formatCents(int64_t cents)
 {
@@ -55,10 +57,42 @@ DashboardWidget::DashboardWidget(Database *db, QWidget *parent)
     grid->addWidget(m_entryCount->parentWidget(), 2, 1);
     grid->addWidget(m_balanceStatus->parentWidget(), 2, 2);
 
+    // Recent activity tables
+    m_recentEntries = new QTableWidget(this);
+    m_recentEntries->setColumnCount(3);
+    m_recentEntries->setHorizontalHeaderLabels({"Date", "Description", "#Lines"});
+    m_recentEntries->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_recentEntries->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_recentEntries->setAlternatingRowColors(true);
+    m_recentEntries->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    m_recentEntries->verticalHeader()->hide();
+    m_recentEntries->setMaximumHeight(180);
+
+    m_recentAudit = new QTableWidget(this);
+    m_recentAudit->setColumnCount(3);
+    m_recentAudit->setHorizontalHeaderLabels({"Timestamp", "Action", "Details"});
+    m_recentAudit->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_recentAudit->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_recentAudit->setAlternatingRowColors(true);
+    m_recentAudit->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    m_recentAudit->verticalHeader()->hide();
+    m_recentAudit->setMaximumHeight(180);
+
+    auto *recentLayout = new QHBoxLayout;
+    auto *entriesGroup = new QVBoxLayout;
+    entriesGroup->addWidget(new QLabel("<b>Recent Journal Entries</b>", this));
+    entriesGroup->addWidget(m_recentEntries);
+    auto *auditGroup = new QVBoxLayout;
+    auditGroup->addWidget(new QLabel("<b>Recent Audit Log</b>", this));
+    auditGroup->addWidget(m_recentAudit);
+    recentLayout->addLayout(entriesGroup);
+    recentLayout->addLayout(auditGroup);
+
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(toolbar);
     layout->addLayout(grid);
+    layout->addLayout(recentLayout);
     layout->addStretch();
 
     refresh();
@@ -146,5 +180,30 @@ void DashboardWidget::refresh()
     } else {
         m_balanceStatus->setText("OUT OF BALANCE");
         m_balanceStatus->setStyleSheet("color: red; font-size: 18pt; font-weight: bold;");
+    }
+
+    // Recent journal entries (last 5)
+    m_recentEntries->setRowCount(0);
+    int entryCount = std::min(static_cast<int>(entries.size()), 5);
+    for (int i = 0; i < entryCount; ++i) {
+        const auto &e = entries[entries.size() - 1 - static_cast<size_t>(i)];
+        int row = m_recentEntries->rowCount();
+        m_recentEntries->insertRow(row);
+        m_recentEntries->setItem(row, 0, new QTableWidgetItem(e.date));
+        m_recentEntries->setItem(row, 1, new QTableWidgetItem(e.description));
+        m_recentEntries->setItem(row, 2, new QTableWidgetItem(QString::number(e.lines.size())));
+    }
+
+    // Recent audit log (last 5)
+    auto auditLog = m_db->allAuditLog();
+    m_recentAudit->setRowCount(0);
+    int auditCount = std::min(static_cast<int>(auditLog.size()), 5);
+    for (int i = 0; i < auditCount; ++i) {
+        const auto &a = auditLog[auditLog.size() - 1 - static_cast<size_t>(i)];
+        int row = m_recentAudit->rowCount();
+        m_recentAudit->insertRow(row);
+        m_recentAudit->setItem(row, 0, new QTableWidgetItem(a.timestamp));
+        m_recentAudit->setItem(row, 1, new QTableWidgetItem(a.action));
+        m_recentAudit->setItem(row, 2, new QTableWidgetItem(a.details));
     }
 }

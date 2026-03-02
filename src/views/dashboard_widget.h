@@ -5,6 +5,7 @@
 
 class Database;
 class QLabel;
+class QTableWidget;
 
 class DashboardWidget : public QWidget
 {
@@ -29,6 +30,8 @@ private:
     QLabel *m_accountCount;
     QLabel *m_entryCount;
     QLabel *m_balanceStatus;
+    QTableWidget *m_recentEntries;
+    QTableWidget *m_recentAudit;
 };
 
 #endif // DASHBOARD_WIDGET_H
