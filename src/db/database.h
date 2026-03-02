@@ -72,6 +72,17 @@ public:
     };
     std::vector<LedgerRow> ledgerForAccount(int64_t accountId) const;
 
+    // Returns net balance (debits - credits) per account for entries within date range
+    struct AccountBalance {
+        int64_t accountId = 0;
+        int code = 0;
+        QString name;
+        QString type;
+        int64_t balanceCents = 0;
+    };
+    std::vector<AccountBalance> accountBalancesForPeriod(
+        const QString &startDate, const QString &endDate) const;
+
     // Fiscal periods
     struct FiscalPeriod {
         int64_t id = 0;

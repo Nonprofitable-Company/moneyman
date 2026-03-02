@@ -10,6 +10,9 @@
 #include <QFont>
 #include <QApplication>
 #include <QStyle>
+#include <QDateEdit>
+#include <QCheckBox>
+#include <QDate>
 #include "utils/csv_export.h"
 #include "utils/print_report.h"
 
@@ -42,6 +45,30 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
             printReportToPdf(m_table, "Income Statement", this, "income_statement.pdf");
         });
 
+    QDate today = QDate::currentDate();
+    m_dateFilterCheck = new QCheckBox("Filter by period:", this);
+    m_fromDate = new QDateEdit(QDate(today.year(), 1, 1), this);
+    m_toDate = new QDateEdit(today, this);
+    m_fromDate->setDisplayFormat("yyyy-MM-dd");
+    m_toDate->setDisplayFormat("yyyy-MM-dd");
+    m_fromDate->setCalendarPopup(true);
+    m_toDate->setCalendarPopup(true);
+    m_fromDate->setEnabled(false);
+    m_toDate->setEnabled(false);
+    connect(m_dateFilterCheck, &QCheckBox::toggled, m_fromDate, &QDateEdit::setEnabled);
+    connect(m_dateFilterCheck, &QCheckBox::toggled, m_toDate, &QDateEdit::setEnabled);
+    connect(m_dateFilterCheck, &QCheckBox::toggled, this, &IncomeStatementWidget::refresh);
+    connect(m_fromDate, &QDateEdit::dateChanged, this, [this]() { if (m_dateFilterCheck->isChecked()) refresh(); });
+    connect(m_toDate, &QDateEdit::dateChanged, this, [this]() { if (m_dateFilterCheck->isChecked()) refresh(); });
+
+    auto *dateBar = new QHBoxLayout;
+    dateBar->setContentsMargins(4, 0, 4, 0);
+    dateBar->addWidget(m_dateFilterCheck);
+    dateBar->addWidget(m_fromDate);
+    dateBar->addWidget(new QLabel("to", this));
+    dateBar->addWidget(m_toDate);
+    dateBar->addStretch();
+
     auto boldFont = m_netIncomeLabel->font();
     boldFont.setBold(true);
     boldFont.setPointSize(boldFont.pointSize() + 2);
@@ -51,6 +78,7 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(toolbar);
+    layout->addLayout(dateBar);
     layout->addWidget(m_table, 1);
     layout->addWidget(m_netIncomeLabel);
 
@@ -59,14 +87,24 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
 
 void IncomeStatementWidget::refresh()
 {
-    auto accounts = m_db->allAccounts();
+    struct AcctInfo { int code; QString name; int64_t balance; };
+    std::vector<AcctInfo> revenue;
+    std::vector<AcctInfo> expenses;
 
-    // Separate revenue and expense accounts
-    std::vector<AccountRow> revenue;
-    std::vector<AccountRow> expenses;
-    for (const auto &acct : accounts) {
-        if (acct.type == "revenue") revenue.push_back(acct);
-        else if (acct.type == "expense") expenses.push_back(acct);
+    if (m_dateFilterCheck->isChecked()) {
+        auto balances = m_db->accountBalancesForPeriod(
+            m_fromDate->date().toString("yyyy-MM-dd"),
+            m_toDate->date().toString("yyyy-MM-dd"));
+        for (const auto &ab : balances) {
+            if (ab.type == "revenue") revenue.push_back({ab.code, ab.name, ab.balanceCents});
+            else if (ab.type == "expense") expenses.push_back({ab.code, ab.name, ab.balanceCents});
+        }
+    } else {
+        auto accounts = m_db->allAccounts();
+        for (const auto &acct : accounts) {
+            if (acct.type == "revenue") revenue.push_back({acct.code, acct.name, acct.balanceCents});
+            else if (acct.type == "expense") expenses.push_back({acct.code, acct.name, acct.balanceCents});
+        }
     }
 
     // Row count: revenue header + revenues + revenue total + blank + expense header + expenses + expense total + blank + net income
@@ -97,11 +135,11 @@ void IncomeStatementWidget::refresh()
     int64_t totalRevenue = 0;
     for (const auto &acct : revenue) {
         auto *nameItem = new QTableWidgetItem(QString("  %1 — %2").arg(acct.code).arg(acct.name));
-        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents));
+        auto *amtItem = new QTableWidgetItem(formatCents(acct.balance));
         amtItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(row, 0, nameItem);
         m_table->setItem(row, 1, amtItem);
-        totalRevenue += acct.balanceCents;
+        totalRevenue += acct.balance;
         ++row;
     }
 
@@ -114,11 +152,11 @@ void IncomeStatementWidget::refresh()
     int64_t totalExpenses = 0;
     for (const auto &acct : expenses) {
         auto *nameItem = new QTableWidgetItem(QString("  %1 — %2").arg(acct.code).arg(acct.name));
-        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents));
+        auto *amtItem = new QTableWidgetItem(formatCents(acct.balance));
         amtItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(row, 0, nameItem);
         m_table->setItem(row, 1, amtItem);
-        totalExpenses += acct.balanceCents;
+        totalExpenses += acct.balance;
         ++row;
     }
 

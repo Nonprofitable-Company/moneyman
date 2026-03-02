@@ -5,6 +5,8 @@
 
 class QTableWidget;
 class QLabel;
+class QDateEdit;
+class QCheckBox;
 class Database;
 
 class IncomeStatementWidget : public QWidget
@@ -22,6 +24,9 @@ private:
     Database *m_db;
     QTableWidget *m_table;
     QLabel *m_netIncomeLabel;
+    QCheckBox *m_dateFilterCheck;
+    QDateEdit *m_fromDate;
+    QDateEdit *m_toDate;
 };
 
 #endif // INCOME_STATEMENT_WIDGET_H

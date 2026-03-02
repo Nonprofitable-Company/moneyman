@@ -495,6 +495,40 @@ std::vector<Database::LedgerRow> Database::ledgerForAccount(int64_t accountId) c
     return result;
 }
 
+std::vector<Database::AccountBalance> Database::accountBalancesForPeriod(
+    const QString &startDate, const QString &endDate) const
+{
+    std::vector<AccountBalance> result;
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT a.id, a.code, a.name, a.type,
+               COALESCE(SUM(jl.debit_cents), 0) - COALESCE(SUM(jl.credit_cents), 0) AS net
+        FROM accounts a
+        LEFT JOIN (
+            SELECT jl2.account_id, jl2.debit_cents, jl2.credit_cents
+            FROM journal_lines jl2
+            JOIN journal_entries je ON je.id = jl2.entry_id
+            WHERE je.posted = 1 AND je.entry_date >= ? AND je.entry_date <= ?
+        ) jl ON jl.account_id = a.id
+        GROUP BY a.id
+        ORDER BY a.code
+    )");
+    query.addBindValue(startDate);
+    query.addBindValue(endDate);
+    query.exec();
+
+    while (query.next()) {
+        AccountBalance ab;
+        ab.accountId = query.value(0).toLongLong();
+        ab.code = query.value(1).toInt();
+        ab.name = query.value(2).toString();
+        ab.type = query.value(3).toString();
+        ab.balanceCents = query.value(4).toLongLong();
+        result.push_back(ab);
+    }
+    return result;
+}
+
 bool Database::isDateInClosedPeriod(const QString &date) const
 {
     QSqlQuery query(m_db);

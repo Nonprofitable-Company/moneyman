@@ -165,6 +165,39 @@ TEST_CASE("Journal entry posting", "[db]")
         };
         REQUIRE_FALSE(db.postJournalEntry("2026-03-01", "Bad entry", lines));
     }
+
+    SECTION("period balances filter by date range") {
+        // Post entries in Jan and Feb
+        std::vector<JournalLineRow> janLines = {
+            {0, 0, cash.id, 10000, 0},
+            {0, 0, sales.id, 0, 10000},
+        };
+        REQUIRE(db.postJournalEntry("2026-01-15", "Jan sale", janLines));
+
+        std::vector<JournalLineRow> febLines = {
+            {0, 0, cash.id, 20000, 0},
+            {0, 0, sales.id, 0, 20000},
+        };
+        REQUIRE(db.postJournalEntry("2026-02-15", "Feb sale", febLines));
+
+        // Full range
+        auto full = db.accountBalancesForPeriod("2026-01-01", "2026-12-31");
+        int64_t cashFull = 0, salesFull = 0;
+        for (const auto &ab : full) {
+            if (ab.code == 1000) cashFull = ab.balanceCents;
+            if (ab.code == 4000) salesFull = ab.balanceCents;
+        }
+        REQUIRE(cashFull == 30000);
+        REQUIRE(salesFull == -30000); // credits are negative in net
+
+        // Jan only
+        auto jan = db.accountBalancesForPeriod("2026-01-01", "2026-01-31");
+        int64_t cashJan = 0;
+        for (const auto &ab : jan) {
+            if (ab.code == 1000) cashJan = ab.balanceCents;
+        }
+        REQUIRE(cashJan == 10000);
+    }
 }
 
 TEST_CASE("Fiscal period closing", "[db][fiscal]")
