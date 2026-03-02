@@ -4,6 +4,7 @@
 #include <QMainWindow>
 
 class Database;
+class AccountsWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -19,6 +20,7 @@ private:
     void setupStatusBar();
 
     Database *m_database;
+    AccountsWidget *m_accountsWidget;
 };
 
 #endif // MAIN_WINDOW_H

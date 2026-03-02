@@ -1,14 +1,16 @@
 #include "main_window.h"
 #include "db/database.h"
+#include "views/accounts_widget.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
-#include <QLabel>
+#include <QDockWidget>
 #include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_database(new Database(this))
+    , m_accountsWidget(nullptr)
 {
     setupUi();
     setupMenuBar();
@@ -27,9 +29,12 @@ void MainWindow::setupUi()
     setWindowTitle("MoneyMan — The Nonprofitable Company");
     resize(1024, 768);
 
-    auto *central = new QLabel("MoneyMan Double-Entry Bookkeeping", this);
-    central->setAlignment(Qt::AlignCenter);
-    setCentralWidget(central);
+    // Chart of Accounts as a dock widget
+    m_accountsWidget = new AccountsWidget(m_database, this);
+    auto *dock = new QDockWidget("Chart of Accounts", this);
+    dock->setWidget(m_accountsWidget);
+    dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+    addDockWidget(Qt::LeftDockWidgetArea, dock);
 }
 
 void MainWindow::setupMenuBar()

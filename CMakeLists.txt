@@ -22,6 +22,12 @@ add_library(moneyman_lib STATIC
     src/accounting/account.h
     src/accounting/journal_entry.cpp
     src/accounting/journal_entry.h
+    src/models/account_model.cpp
+    src/models/account_model.h
+    src/views/accounts_widget.cpp
+    src/views/accounts_widget.h
+    src/views/add_account_dialog.cpp
+    src/views/add_account_dialog.h
     src/app/main_window.cpp
     src/app/main_window.h
 )
