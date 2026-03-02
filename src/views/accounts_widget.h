@@ -20,7 +20,9 @@ public:
 
 private slots:
     void onAddAccount();
+    void onEditAccount();
     void onFilterChanged(const QString &text);
+    void onContextMenu(const QPoint &pos);
 
 private:
     Database *m_db;

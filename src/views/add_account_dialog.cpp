@@ -42,6 +42,16 @@ AddAccountDialog::AddAccountDialog(QWidget *parent)
     layout->addWidget(buttons);
 }
 
+void AddAccountDialog::setEditMode(int code, const QString &name, const QString &type)
+{
+    setWindowTitle("Edit Account");
+    m_codeSpinBox->setValue(code);
+    m_codeSpinBox->setEnabled(false);
+    m_nameEdit->setText(name);
+    int idx = m_typeCombo->findData(type);
+    if (idx >= 0) m_typeCombo->setCurrentIndex(idx);
+}
+
 int AddAccountDialog::accountCode() const
 {
     return m_codeSpinBox->value();

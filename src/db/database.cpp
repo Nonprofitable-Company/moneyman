@@ -169,6 +169,21 @@ bool Database::createAccount(int code, const QString &name, const QString &type)
     return true;
 }
 
+bool Database::updateAccount(int64_t id, const QString &name, const QString &type)
+{
+    QSqlQuery query(m_db);
+    query.prepare("UPDATE accounts SET name = ?, type = ? WHERE id = ?");
+    query.addBindValue(name);
+    query.addBindValue(type);
+    query.addBindValue(static_cast<qlonglong>(id));
+
+    if (!query.exec()) {
+        m_lastError = query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
 std::vector<AccountRow> Database::allAccounts() const
 {
     std::vector<AccountRow> result;

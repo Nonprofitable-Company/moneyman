@@ -14,6 +14,8 @@ class AddAccountDialog : public QDialog
 public:
     explicit AddAccountDialog(QWidget *parent = nullptr);
 
+    void setEditMode(int code, const QString &name, const QString &type);
+
     int accountCode() const;
     QString accountName() const;
     QString accountType() const;

@@ -46,6 +46,7 @@ public:
 
     // Accounts
     bool createAccount(int code, const QString &name, const QString &type);
+    bool updateAccount(int64_t id, const QString &name, const QString &type);
     std::vector<AccountRow> allAccounts() const;
     AccountRow accountById(int64_t id) const;
     AccountRow accountByCode(int code) const;

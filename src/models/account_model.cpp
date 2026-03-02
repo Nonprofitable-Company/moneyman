@@ -66,3 +66,10 @@ void AccountModel::refresh()
     m_accounts = m_db->allAccounts();
     endResetModel();
 }
+
+const AccountRow* AccountModel::accountAt(int row) const
+{
+    if (row < 0 || row >= static_cast<int>(m_accounts.size()))
+        return nullptr;
+    return &m_accounts[static_cast<size_t>(row)];
+}

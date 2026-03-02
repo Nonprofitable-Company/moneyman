@@ -57,6 +57,28 @@ TEST_CASE("Account CRUD", "[db]")
         REQUIRE(db.createAccount(1000, "Cash", "asset"));
         REQUIRE_FALSE(db.createAccount(1000, "Other Cash", "asset"));
     }
+
+    SECTION("update account name and type") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        auto acct = db.accountByCode(1000);
+        REQUIRE(acct.id > 0);
+
+        REQUIRE(db.updateAccount(acct.id, "Petty Cash", "asset"));
+        auto updated = db.accountByCode(1000);
+        REQUIRE(updated.name == "Petty Cash");
+        REQUIRE(updated.type == "asset");
+        REQUIRE(updated.code == 1000); // code unchanged
+    }
+
+    SECTION("update account type") {
+        REQUIRE(db.createAccount(5000, "Misc", "expense"));
+        auto acct = db.accountByCode(5000);
+
+        REQUIRE(db.updateAccount(acct.id, "Misc Revenue", "revenue"));
+        auto updated = db.accountByCode(5000);
+        REQUIRE(updated.name == "Misc Revenue");
+        REQUIRE(updated.type == "revenue");
+    }
 }
 
 TEST_CASE("Journal entry posting", "[db]")

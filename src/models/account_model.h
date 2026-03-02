@@ -20,6 +20,7 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
     void refresh();
+    const AccountRow* accountAt(int row) const;
 
 private:
     Database *m_db;
