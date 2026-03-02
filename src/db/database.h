@@ -1,0 +1,68 @@
+#ifndef DATABASE_H
+#define DATABASE_H
+
+#include <QObject>
+#include <QString>
+#include <QSqlDatabase>
+#include <cstdint>
+#include <vector>
+
+struct AccountRow {
+    int64_t id = 0;
+    int code = 0;
+    QString name;
+    QString type; // asset, liability, equity, revenue, expense
+    int64_t balanceCents = 0;
+};
+
+struct JournalLineRow {
+    int64_t id = 0;
+    int64_t entryId = 0;
+    int64_t accountId = 0;
+    int64_t debitCents = 0;
+    int64_t creditCents = 0;
+};
+
+struct JournalEntryRow {
+    int64_t id = 0;
+    QString date;
+    QString description;
+    bool posted = false;
+    std::vector<JournalLineRow> lines;
+};
+
+class Database : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit Database(QObject *parent = nullptr);
+    ~Database() override;
+
+    bool open(const QString &path = QString());
+    void close();
+    bool isOpen() const;
+    QString lastError() const;
+
+    // Accounts
+    bool createAccount(int code, const QString &name, const QString &type);
+    std::vector<AccountRow> allAccounts() const;
+    AccountRow accountById(int64_t id) const;
+    AccountRow accountByCode(int code) const;
+
+    // Journal entries
+    bool postJournalEntry(const QString &date, const QString &description,
+                          const std::vector<JournalLineRow> &lines);
+    std::vector<JournalEntryRow> allJournalEntries() const;
+
+private:
+    bool createSchema();
+    bool setEncryptionKey(const QString &key);
+
+    QSqlDatabase m_db;
+    QString m_lastError;
+    QString m_dbPath;
+    QString m_connectionName;
+};
+
+#endif // DATABASE_H
