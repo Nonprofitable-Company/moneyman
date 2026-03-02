@@ -152,6 +152,34 @@ bool Database::createSchema()
         return false;
     }
 
+    const QString templatesTable = R"(
+        CREATE TABLE IF NOT EXISTS journal_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT NOT NULL
+        )
+    )";
+
+    if (!query.exec(templatesTable)) {
+        m_lastError = "Failed to create journal_templates table: " + query.lastError().text();
+        return false;
+    }
+
+    const QString templateLinesTable = R"(
+        CREATE TABLE IF NOT EXISTS template_lines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            template_id INTEGER NOT NULL REFERENCES journal_templates(id) ON DELETE CASCADE,
+            account_id INTEGER NOT NULL REFERENCES accounts(id),
+            debit_cents INTEGER NOT NULL DEFAULT 0,
+            credit_cents INTEGER NOT NULL DEFAULT 0
+        )
+    )";
+
+    if (!query.exec(templateLinesTable)) {
+        m_lastError = "Failed to create template_lines table: " + query.lastError().text();
+        return false;
+    }
+
     return true;
 }
 
@@ -636,5 +664,127 @@ bool Database::voidJournalEntry(int64_t entryId)
         return false;
     }
 
+    return true;
+}
+
+bool Database::saveTemplate(const QString &name, const QString &description,
+                             const std::vector<JournalLineRow> &lines)
+{
+    if (lines.size() < 2) {
+        m_lastError = "Template must have at least 2 lines";
+        return false;
+    }
+
+    m_db.transaction();
+
+    QSqlQuery tplQuery(m_db);
+    tplQuery.prepare("INSERT INTO journal_templates (name, description) VALUES (?, ?)");
+    tplQuery.addBindValue(name);
+    tplQuery.addBindValue(description);
+
+    if (!tplQuery.exec()) {
+        m_lastError = tplQuery.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+
+    int64_t tplId = tplQuery.lastInsertId().toLongLong();
+
+    for (const auto &line : lines) {
+        QSqlQuery lineQuery(m_db);
+        lineQuery.prepare("INSERT INTO template_lines (template_id, account_id, debit_cents, credit_cents) VALUES (?, ?, ?, ?)");
+        lineQuery.addBindValue(static_cast<qlonglong>(tplId));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.accountId));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.debitCents));
+        lineQuery.addBindValue(static_cast<qlonglong>(line.creditCents));
+
+        if (!lineQuery.exec()) {
+            m_lastError = lineQuery.lastError().text();
+            m_db.rollback();
+            return false;
+        }
+    }
+
+    m_db.commit();
+    return true;
+}
+
+std::vector<Database::TemplateRow> Database::allTemplates() const
+{
+    std::vector<TemplateRow> result;
+    QSqlQuery query(m_db);
+    query.exec("SELECT id, name, description FROM journal_templates ORDER BY name");
+
+    while (query.next()) {
+        TemplateRow tpl;
+        tpl.id = query.value(0).toLongLong();
+        tpl.name = query.value(1).toString();
+        tpl.description = query.value(2).toString();
+
+        QSqlQuery lineQuery(m_db);
+        lineQuery.prepare("SELECT id, template_id, account_id, debit_cents, credit_cents FROM template_lines WHERE template_id = ?");
+        lineQuery.addBindValue(static_cast<qlonglong>(tpl.id));
+        lineQuery.exec();
+
+        while (lineQuery.next()) {
+            JournalLineRow line;
+            line.id = lineQuery.value(0).toLongLong();
+            line.entryId = lineQuery.value(1).toLongLong();
+            line.accountId = lineQuery.value(2).toLongLong();
+            line.debitCents = lineQuery.value(3).toLongLong();
+            line.creditCents = lineQuery.value(4).toLongLong();
+            tpl.lines.push_back(line);
+        }
+
+        result.push_back(tpl);
+    }
+    return result;
+}
+
+Database::TemplateRow Database::templateById(int64_t id) const
+{
+    TemplateRow tpl;
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id, name, description FROM journal_templates WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+    query.exec();
+
+    if (query.next()) {
+        tpl.id = query.value(0).toLongLong();
+        tpl.name = query.value(1).toString();
+        tpl.description = query.value(2).toString();
+
+        QSqlQuery lineQuery(m_db);
+        lineQuery.prepare("SELECT id, template_id, account_id, debit_cents, credit_cents FROM template_lines WHERE template_id = ?");
+        lineQuery.addBindValue(static_cast<qlonglong>(tpl.id));
+        lineQuery.exec();
+
+        while (lineQuery.next()) {
+            JournalLineRow line;
+            line.id = lineQuery.value(0).toLongLong();
+            line.entryId = lineQuery.value(1).toLongLong();
+            line.accountId = lineQuery.value(2).toLongLong();
+            line.debitCents = lineQuery.value(3).toLongLong();
+            line.creditCents = lineQuery.value(4).toLongLong();
+            tpl.lines.push_back(line);
+        }
+    }
+    return tpl;
+}
+
+bool Database::deleteTemplate(int64_t id)
+{
+    QSqlQuery lineQuery(m_db);
+    lineQuery.prepare("DELETE FROM template_lines WHERE template_id = ?");
+    lineQuery.addBindValue(static_cast<qlonglong>(id));
+    lineQuery.exec();
+
+    QSqlQuery query(m_db);
+    query.prepare("DELETE FROM journal_templates WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+    if (!query.exec()) {
+        m_lastError = query.lastError().text();
+        return false;
+    }
     return true;
 }

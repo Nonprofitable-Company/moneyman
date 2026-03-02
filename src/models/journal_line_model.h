@@ -31,6 +31,7 @@ public:
 
     void addLine();
     void removeLine(int row);
+    void setLines(const std::vector<EditableJournalLine> &lines);
 
     const std::vector<EditableJournalLine>& lines() const { return m_lines; }
     int64_t totalDebitCents() const;

@@ -23,6 +23,8 @@ private slots:
     void onRemoveLine();
     void onTotalsChanged();
     void onPost();
+    void onSaveTemplate();
+    void onLoadTemplate();
 
 private:
     Database *m_db;

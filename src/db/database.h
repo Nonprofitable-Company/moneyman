@@ -82,6 +82,19 @@ public:
     std::vector<FiscalPeriod> allFiscalPeriods() const;
     int64_t ensureRetainedEarningsAccount();
 
+    // Journal templates (recurring entries)
+    struct TemplateRow {
+        int64_t id = 0;
+        QString name;
+        QString description;
+        std::vector<JournalLineRow> lines;
+    };
+    bool saveTemplate(const QString &name, const QString &description,
+                      const std::vector<JournalLineRow> &lines);
+    std::vector<TemplateRow> allTemplates() const;
+    TemplateRow templateById(int64_t id) const;
+    bool deleteTemplate(int64_t id);
+
 private:
     bool createSchema();
     bool setEncryptionKey(const QString &key);

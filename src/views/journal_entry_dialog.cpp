@@ -14,6 +14,8 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QDate>
+#include <QInputDialog>
+#include <QMenu>
 
 JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     : QDialog(parent)
@@ -54,12 +56,18 @@ JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     auto *lineButtons = new QHBoxLayout;
     auto *addLineBtn = new QPushButton("Add Line", this);
     auto *removeLineBtn = new QPushButton("Remove Line", this);
+    auto *loadTemplateBtn = new QPushButton("From Template...", this);
+    auto *saveTemplateBtn = new QPushButton("Save as Template...", this);
     lineButtons->addWidget(addLineBtn);
     lineButtons->addWidget(removeLineBtn);
     lineButtons->addStretch();
+    lineButtons->addWidget(loadTemplateBtn);
+    lineButtons->addWidget(saveTemplateBtn);
 
     connect(addLineBtn, &QPushButton::clicked, this, &JournalEntryDialog::onAddLine);
     connect(removeLineBtn, &QPushButton::clicked, this, &JournalEntryDialog::onRemoveLine);
+    connect(loadTemplateBtn, &QPushButton::clicked, this, &JournalEntryDialog::onLoadTemplate);
+    connect(saveTemplateBtn, &QPushButton::clicked, this, &JournalEntryDialog::onSaveTemplate);
 
     // Totals row
     auto *totalsLayout = new QHBoxLayout;
@@ -177,4 +185,72 @@ void JournalEntryDialog::onPost()
     }
 
     accept();
+}
+
+void JournalEntryDialog::onSaveTemplate()
+{
+    QString name = QInputDialog::getText(this, "Save Template",
+        "Template name:");
+    if (name.trimmed().isEmpty()) return;
+
+    std::vector<JournalLineRow> dbLines;
+    for (const auto &line : m_lineModel->lines()) {
+        if (line.accountId <= 0 || (line.debitCents == 0 && line.creditCents == 0))
+            continue;
+        JournalLineRow row;
+        row.accountId = line.accountId;
+        row.debitCents = line.debitCents;
+        row.creditCents = line.creditCents;
+        dbLines.push_back(row);
+    }
+
+    if (dbLines.size() < 2) {
+        QMessageBox::warning(this, "Error", "Need at least 2 valid lines to save a template.");
+        return;
+    }
+
+    QString desc = m_descriptionEdit->text().trimmed();
+    if (!m_db->saveTemplate(name.trimmed(), desc, dbLines)) {
+        QMessageBox::warning(this, "Error",
+            "Failed to save template: " + m_db->lastError());
+    } else {
+        QMessageBox::information(this, "Template Saved",
+            "Template '" + name.trimmed() + "' saved successfully.");
+    }
+}
+
+void JournalEntryDialog::onLoadTemplate()
+{
+    auto templates = m_db->allTemplates();
+    if (templates.empty()) {
+        QMessageBox::information(this, "No Templates", "No saved templates found.");
+        return;
+    }
+
+    QStringList names;
+    for (const auto &tpl : templates) {
+        names << tpl.name;
+    }
+
+    bool ok = false;
+    QString selected = QInputDialog::getItem(this, "Load Template",
+        "Select template:", names, 0, false, &ok);
+    if (!ok || selected.isEmpty()) return;
+
+    for (const auto &tpl : templates) {
+        if (tpl.name == selected) {
+            m_descriptionEdit->setText(tpl.description);
+
+            std::vector<EditableJournalLine> editLines;
+            for (const auto &line : tpl.lines) {
+                EditableJournalLine el;
+                el.accountId = line.accountId;
+                el.debitCents = line.debitCents;
+                el.creditCents = line.creditCents;
+                editLines.push_back(el);
+            }
+            m_lineModel->setLines(editLines);
+            break;
+        }
+    }
 }

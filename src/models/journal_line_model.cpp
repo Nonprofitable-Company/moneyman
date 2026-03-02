@@ -110,6 +110,15 @@ void JournalLineModel::removeLine(int row)
     emit totalsChanged();
 }
 
+void JournalLineModel::setLines(const std::vector<EditableJournalLine> &lines)
+{
+    beginResetModel();
+    m_lines = lines;
+    if (m_lines.size() < 2) m_lines.resize(2);
+    endResetModel();
+    emit totalsChanged();
+}
+
 int64_t JournalLineModel::totalDebitCents() const
 {
     int64_t total = 0;

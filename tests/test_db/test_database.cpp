@@ -349,3 +349,60 @@ TEST_CASE("Void journal entry", "[db][void]")
         REQUIRE_FALSE(db.voidJournalEntry(99999));
     }
 }
+
+TEST_CASE("Journal templates", "[db][template]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    Database db;
+    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+
+    REQUIRE(db.createAccount(1000, "Cash", "asset"));
+    REQUIRE(db.createAccount(5000, "Rent Expense", "expense"));
+
+    auto cash = db.accountByCode(1000);
+    auto rent = db.accountByCode(5000);
+
+    std::vector<JournalLineRow> lines = {
+        {0, 0, cash.id, 0, 150000},
+        {0, 0, rent.id, 150000, 0},
+    };
+
+    SECTION("save and retrieve template") {
+        REQUIRE(db.saveTemplate("Monthly Rent", "Rent payment", lines));
+
+        auto templates = db.allTemplates();
+        REQUIRE(templates.size() == 1);
+        REQUIRE(templates[0].name == "Monthly Rent");
+        REQUIRE(templates[0].description == "Rent payment");
+        REQUIRE(templates[0].lines.size() == 2);
+    }
+
+    SECTION("retrieve template by id") {
+        REQUIRE(db.saveTemplate("Monthly Rent", "Rent payment", lines));
+        auto all = db.allTemplates();
+        auto tpl = db.templateById(all[0].id);
+        REQUIRE(tpl.name == "Monthly Rent");
+        REQUIRE(tpl.lines.size() == 2);
+    }
+
+    SECTION("delete template") {
+        REQUIRE(db.saveTemplate("Monthly Rent", "Rent payment", lines));
+        auto all = db.allTemplates();
+        REQUIRE(db.deleteTemplate(all[0].id));
+        REQUIRE(db.allTemplates().empty());
+    }
+
+    SECTION("reject duplicate template name") {
+        REQUIRE(db.saveTemplate("Monthly Rent", "Rent payment", lines));
+        REQUIRE_FALSE(db.saveTemplate("Monthly Rent", "Different desc", lines));
+    }
+
+    SECTION("reject template with less than 2 lines") {
+        std::vector<JournalLineRow> singleLine = {
+            {0, 0, cash.id, 0, 150000},
+        };
+        REQUIRE_FALSE(db.saveTemplate("Bad Template", "test", singleLine));
+    }
+}
