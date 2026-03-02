@@ -95,6 +95,16 @@ public:
     TemplateRow templateById(int64_t id) const;
     bool deleteTemplate(int64_t id);
 
+    // Audit log
+    struct AuditLogEntry {
+        int64_t id = 0;
+        QString timestamp;
+        QString action;
+        QString details;
+    };
+    void logAudit(const QString &action, const QString &details);
+    std::vector<AuditLogEntry> allAuditLog() const;
+
 private:
     bool createSchema();
     bool setEncryptionKey(const QString &key);

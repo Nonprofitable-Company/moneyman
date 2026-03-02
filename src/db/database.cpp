@@ -180,6 +180,20 @@ bool Database::createSchema()
         return false;
     }
 
+    const QString auditLogTable = R"(
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+            action TEXT NOT NULL,
+            details TEXT NOT NULL
+        )
+    )";
+
+    if (!query.exec(auditLogTable)) {
+        m_lastError = "Failed to create audit_log table: " + query.lastError().text();
+        return false;
+    }
+
     return true;
 }
 
@@ -197,6 +211,7 @@ bool Database::createAccount(int code, const QString &name, const QString &type,
         m_lastError = query.lastError().text();
         return false;
     }
+    logAudit("CREATE_ACCOUNT", QString("Created account %1 — %2 (%3, %4)").arg(code).arg(name, type, currency));
     return true;
 }
 
@@ -212,6 +227,7 @@ bool Database::updateAccount(int64_t id, const QString &name, const QString &typ
         m_lastError = query.lastError().text();
         return false;
     }
+    logAudit("UPDATE_ACCOUNT", QString("Updated account #%1: %2 (%3)").arg(id).arg(name, type));
     return true;
 }
 
@@ -358,6 +374,8 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
     }
 
     m_db.commit();
+    logAudit("POST_JOURNAL_ENTRY", QString("Posted entry #%1: %2 (%3)")
+        .arg(entryId).arg(description, date));
     return true;
 }
 
@@ -568,6 +586,7 @@ bool Database::closePeriod(const QString &startDate, const QString &endDate)
     }
 
     m_db.commit();
+    logAudit("CLOSE_PERIOD", QString("Closed period %1 to %2").arg(startDate, endDate));
     return true;
 }
 
@@ -664,6 +683,7 @@ bool Database::voidJournalEntry(int64_t entryId)
         return false;
     }
 
+    logAudit("VOID_JOURNAL_ENTRY", QString("Voided entry #%1: %2").arg(entryId).arg(original.description));
     return true;
 }
 
@@ -706,6 +726,7 @@ bool Database::saveTemplate(const QString &name, const QString &description,
     }
 
     m_db.commit();
+    logAudit("SAVE_TEMPLATE", QString("Saved template: %1").arg(name));
     return true;
 }
 
@@ -786,5 +807,31 @@ bool Database::deleteTemplate(int64_t id)
         m_lastError = query.lastError().text();
         return false;
     }
+    logAudit("DELETE_TEMPLATE", QString("Deleted template #%1").arg(id));
     return true;
+}
+
+void Database::logAudit(const QString &action, const QString &details)
+{
+    QSqlQuery query(m_db);
+    query.prepare("INSERT INTO audit_log (action, details) VALUES (?, ?)");
+    query.addBindValue(action);
+    query.addBindValue(details);
+    query.exec();
+}
+
+std::vector<Database::AuditLogEntry> Database::allAuditLog() const
+{
+    std::vector<AuditLogEntry> result;
+    QSqlQuery query(m_db);
+    query.exec("SELECT id, timestamp, action, details FROM audit_log ORDER BY id DESC");
+    while (query.next()) {
+        AuditLogEntry entry;
+        entry.id = query.value(0).toLongLong();
+        entry.timestamp = query.value(1).toString();
+        entry.action = query.value(2).toString();
+        entry.details = query.value(3).toString();
+        result.push_back(entry);
+    }
+    return result;
 }

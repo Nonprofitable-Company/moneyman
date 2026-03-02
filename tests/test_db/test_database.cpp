@@ -406,3 +406,70 @@ TEST_CASE("Journal templates", "[db][template]")
         REQUIRE_FALSE(db.saveTemplate("Bad Template", "test", singleLine));
     }
 }
+
+TEST_CASE("Audit log", "[db][audit]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    Database db;
+    REQUIRE(db.open(tmpDir.path() + "/test.db"));
+
+    SECTION("records account creation") {
+        REQUIRE(db.allAuditLog().empty());
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+
+        auto log = db.allAuditLog();
+        REQUIRE(log.size() == 1);
+        REQUIRE(log[0].action == "CREATE_ACCOUNT");
+        REQUIRE(log[0].details.contains("Cash"));
+        REQUIRE_FALSE(log[0].timestamp.isEmpty());
+    }
+
+    SECTION("records journal entry posting") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(4000, "Sales", "revenue"));
+        auto cash = db.accountByCode(1000);
+        auto sales = db.accountByCode(4000);
+
+        std::vector<JournalLineRow> lines = {
+            {0, 0, cash.id, 10000, 0},
+            {0, 0, sales.id, 0, 10000},
+        };
+        REQUIRE(db.postJournalEntry("2026-01-01", "Test sale", lines));
+
+        auto log = db.allAuditLog();
+        // 2 account creations + 1 journal post = 3
+        REQUIRE(log.size() == 3);
+        // Most recent first
+        REQUIRE(log[0].action == "POST_JOURNAL_ENTRY");
+        REQUIRE(log[0].details.contains("Test sale"));
+    }
+
+    SECTION("records voiding") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(4000, "Sales", "revenue"));
+        auto cash = db.accountByCode(1000);
+        auto sales = db.accountByCode(4000);
+
+        std::vector<JournalLineRow> lines = {
+            {0, 0, cash.id, 10000, 0},
+            {0, 0, sales.id, 0, 10000},
+        };
+        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines));
+        auto entries = db.allJournalEntries();
+        REQUIRE(db.voidJournalEntry(entries[0].id));
+
+        auto log = db.allAuditLog();
+        REQUIRE(log[0].action == "VOID_JOURNAL_ENTRY");
+    }
+
+    SECTION("log is ordered most recent first") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(2000, "AP", "liability"));
+
+        auto log = db.allAuditLog();
+        REQUIRE(log.size() == 2);
+        REQUIRE(log[0].id > log[1].id);
+    }
+}
