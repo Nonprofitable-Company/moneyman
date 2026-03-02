@@ -25,6 +25,7 @@ private slots:
     void onNewJournalEntry();
     void onBackup();
     void onRestore();
+    void onChangeKey();
     void refreshAllReports();
 
 private:

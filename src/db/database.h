@@ -40,7 +40,7 @@ public:
     explicit Database(QObject *parent = nullptr);
     ~Database() override;
 
-    bool open(const QString &path = QString());
+    bool open(const QString &path = QString(), const QString &encryptionKey = QString());
     void close();
     bool isOpen() const;
     QString lastError() const;
@@ -105,6 +105,9 @@ public:
     };
     void logAudit(const QString &action, const QString &details);
     std::vector<AuditLogEntry> allAuditLog() const;
+
+    // Encryption
+    bool changeEncryptionKey(const QString &newKey);
 
 private:
     bool createSchema();

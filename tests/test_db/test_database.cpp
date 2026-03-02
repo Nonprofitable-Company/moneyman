@@ -524,3 +524,35 @@ TEST_CASE("Database backup and restore", "[db][backup]")
         REQUIRE(db.accountByCode(2000).id == 0); // AP was not in backup
     }
 }
+
+TEST_CASE("Encryption key management", "[db]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+    QString dbPath = tmpDir.path() + "/enc_test.db";
+
+    SECTION("Open with custom key") {
+        Database db;
+        REQUIRE(db.open(dbPath, "my_secret_key"));
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        db.close();
+
+        // Reopen with same key succeeds
+        Database db2;
+        REQUIRE(db2.open(dbPath, "my_secret_key"));
+        REQUIRE(db2.accountByCode(1000).name == "Cash");
+    }
+
+    SECTION("Change encryption key") {
+        Database db;
+        REQUIRE(db.open(dbPath, "old_key"));
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.changeEncryptionKey("new_key"));
+        db.close();
+
+        // Reopen with new key succeeds
+        Database db2;
+        REQUIRE(db2.open(dbPath, "new_key"));
+        REQUIRE(db2.accountByCode(1000).name == "Cash");
+    }
+}

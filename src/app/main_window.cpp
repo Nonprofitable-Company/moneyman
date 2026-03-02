@@ -8,6 +8,7 @@
 #include "views/balance_sheet_widget.h"
 #include "views/audit_log_widget.h"
 #include "views/close_period_dialog.h"
+#include "views/password_dialog.h"
 #include "models/account_model.h"
 
 #include <QMenuBar>
@@ -38,9 +39,15 @@ MainWindow::MainWindow(QWidget *parent)
     setupToolBar();
     setupStatusBar();
 
-    if (!m_database->open()) {
+    // Prompt for encryption passphrase
+    PasswordDialog pwDialog(PasswordDialog::Unlock, this);
+    if (pwDialog.exec() != QDialog::Accepted) {
+        // User cancelled — open with default key so UI still loads
+        m_database->open();
+    } else if (!m_database->open(QString(), pwDialog.password())) {
         QMessageBox::critical(this, "Database Error",
-            "Failed to open database: " + m_database->lastError());
+            "Failed to open database: " + m_database->lastError()
+            + "\n\nThe passphrase may be incorrect.");
     }
 }
 
@@ -83,6 +90,7 @@ void MainWindow::setupMenuBar()
     auto *fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction("&Backup Database...", this, &MainWindow::onBackup);
     fileMenu->addAction("&Restore Database...", this, &MainWindow::onRestore);
+    fileMenu->addAction("Change Encryption &Key...", this, &MainWindow::onChangeKey);
     fileMenu->addSeparator();
     fileMenu->addAction("Close &Period...", this, [this]() {
         ClosePeriodDialog dialog(m_database, this);
@@ -208,6 +216,20 @@ void MainWindow::onRestore()
     m_accountsWidget->model()->refresh();
     refreshAllReports();
     statusBar()->showMessage("Database restored from " + src, 5000);
+}
+
+void MainWindow::onChangeKey()
+{
+    PasswordDialog dialog(PasswordDialog::ChangeKey, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    if (m_database->changeEncryptionKey(dialog.newPassword())) {
+        statusBar()->showMessage("Encryption key changed successfully", 5000);
+    } else {
+        QMessageBox::warning(this, "Error",
+            "Failed to change encryption key: " + m_database->lastError());
+    }
 }
 
 void MainWindow::refreshAllReports()

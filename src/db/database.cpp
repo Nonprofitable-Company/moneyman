@@ -19,7 +19,7 @@ Database::~Database()
     close();
 }
 
-bool Database::open(const QString &path)
+bool Database::open(const QString &path, const QString &encryptionKey)
 {
     if (path.isEmpty()) {
         QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
@@ -38,7 +38,8 @@ bool Database::open(const QString &path)
     }
 
     // Enable SQLCipher encryption via PRAGMA
-    if (!setEncryptionKey("CHANGEME_DEFAULT_KEY")) {
+    QString key = encryptionKey.isEmpty() ? "CHANGEME_DEFAULT_KEY" : encryptionKey;
+    if (!setEncryptionKey(key)) {
         return false;
     }
 
@@ -54,6 +55,21 @@ bool Database::open(const QString &path)
         return false;
     }
 
+    return true;
+}
+
+bool Database::changeEncryptionKey(const QString &newKey)
+{
+    if (!m_db.isOpen()) {
+        m_lastError = "Database is not open";
+        return false;
+    }
+    QSqlQuery query(m_db);
+    if (!query.exec(QString("PRAGMA rekey='%1'").arg(newKey))) {
+        m_lastError = "Failed to change encryption key: " + query.lastError().text();
+        return false;
+    }
+    logAudit("CHANGE_KEY", "Encryption key changed");
     return true;
 }
 
