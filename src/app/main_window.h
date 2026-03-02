@@ -14,9 +14,13 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+private slots:
+    void onNewJournalEntry();
+
 private:
     void setupUi();
     void setupMenuBar();
+    void setupToolBar();
     void setupStatusBar();
 
     Database *m_database;
