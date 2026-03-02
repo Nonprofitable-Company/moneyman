@@ -5,6 +5,7 @@
 
 class Database;
 class QTableWidget;
+class QPushButton;
 class QLabel;
 
 class ImportCsvDialog : public QDialog
@@ -23,6 +24,7 @@ private slots:
 private:
     Database *m_db;
     QTableWidget *m_preview;
+    QPushButton *m_importBtn;
     QLabel *m_statusLabel;
     QString m_filePath;
     int m_importedCount = 0;
