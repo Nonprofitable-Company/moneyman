@@ -24,6 +24,7 @@
 #include <QStyle>
 #include <QFileDialog>
 #include <QFile>
+#include <QShortcut>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -137,6 +138,46 @@ void MainWindow::setupMenuBar()
     // Window menu for toggling dock visibility
     auto *windowMenu = menuBar()->addMenu("&Window");
     windowMenu->addAction(m_accountsDock->toggleViewAction());
+    auto *darkAction = windowMenu->addAction("&Dark Mode");
+    darkAction->setCheckable(true);
+    connect(darkAction, &QAction::toggled, this, [](bool dark) {
+        if (dark) {
+            qApp->setStyleSheet(
+                "QWidget { background-color: #2b2b2b; color: #e0e0e0; }"
+                "QTableWidget, QTableView, QTreeView { background-color: #1e1e1e; "
+                "  alternate-background-color: #2d2d2d; gridline-color: #444; }"
+                "QHeaderView::section { background-color: #3c3c3c; color: #e0e0e0; "
+                "  border: 1px solid #555; padding: 4px; }"
+                "QMenuBar { background-color: #333; color: #e0e0e0; }"
+                "QMenuBar::item:selected { background-color: #505050; }"
+                "QMenu { background-color: #2b2b2b; color: #e0e0e0; border: 1px solid #555; }"
+                "QMenu::item:selected { background-color: #505050; }"
+                "QToolBar { background-color: #333; border: none; }"
+                "QPushButton { background-color: #3c3c3c; color: #e0e0e0; "
+                "  border: 1px solid #555; padding: 4px 12px; border-radius: 3px; }"
+                "QPushButton:hover { background-color: #505050; }"
+                "QLineEdit, QSpinBox, QComboBox, QDateEdit { background-color: #1e1e1e; "
+                "  color: #e0e0e0; border: 1px solid #555; padding: 2px; }"
+                "QDockWidget::title { background-color: #333; color: #e0e0e0; padding: 4px; }"
+                "QTabWidget::pane { border: 1px solid #555; }"
+                "QTabBar::tab { background-color: #3c3c3c; color: #e0e0e0; padding: 6px 12px; "
+                "  border: 1px solid #555; }"
+                "QTabBar::tab:selected { background-color: #2b2b2b; border-bottom-color: #2b2b2b; }"
+                "QStatusBar { background-color: #333; color: #e0e0e0; }"
+                "QFrame { border-color: #555; }"
+            );
+        } else {
+            qApp->setStyleSheet("");
+        }
+    });
+
+    // Tab navigation shortcuts (Ctrl+1 through Ctrl+8)
+    for (int i = 0; i < m_reportTabs->count() && i < 9; ++i) {
+        auto *shortcut = new QShortcut(QKeySequence(Qt::CTRL | static_cast<Qt::Key>(Qt::Key_1 + i)), this);
+        connect(shortcut, &QShortcut::activated, this, [this, i]() {
+            m_reportTabs->setCurrentIndex(i);
+        });
+    }
 }
 
 void MainWindow::setupToolBar()
