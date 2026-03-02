@@ -9,6 +9,7 @@
 #include "views/audit_log_widget.h"
 #include "views/close_period_dialog.h"
 #include "views/password_dialog.h"
+#include "views/import_csv_dialog.h"
 #include "models/account_model.h"
 
 #include <QMenuBar>
@@ -90,6 +91,15 @@ void MainWindow::setupMenuBar()
     auto *fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction("&Backup Database...", this, &MainWindow::onBackup);
     fileMenu->addAction("&Restore Database...", this, &MainWindow::onRestore);
+    fileMenu->addAction("&Import Accounts CSV...", this, [this]() {
+        ImportCsvDialog dialog(m_database, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            m_accountsWidget->model()->refresh();
+            refreshAllReports();
+            statusBar()->showMessage(
+                QString("Imported %1 accounts").arg(dialog.importedCount()), 5000);
+        }
+    });
     fileMenu->addAction("Change Encryption &Key...", this, &MainWindow::onChangeKey);
     fileMenu->addSeparator();
     fileMenu->addAction("Close &Period...", this, [this]() {

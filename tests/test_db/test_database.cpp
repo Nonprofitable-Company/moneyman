@@ -5,6 +5,9 @@
 
 #include <QCoreApplication>
 #include <QTemporaryDir>
+#include <QFile>
+#include <QTextStream>
+#include "utils/csv_import.h"
 
 int main(int argc, char *argv[])
 {
@@ -554,5 +557,41 @@ TEST_CASE("Encryption key management", "[db]")
         Database db2;
         REQUIRE(db2.open(dbPath, "new_key"));
         REQUIRE(db2.accountByCode(1000).name == "Cash");
+    }
+}
+
+TEST_CASE("CSV import parsing", "[csv]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    SECTION("Parse basic CSV") {
+        QString csvPath = tmpDir.path() + "/accounts.csv";
+        {
+            QFile f(csvPath);
+            REQUIRE(f.open(QIODevice::WriteOnly | QIODevice::Text));
+            QTextStream out(&f);
+            out << "code,name,type,currency\n";
+            out << "1000,Cash,asset,USD\n";
+            out << "2000,Accounts Payable,liability,USD\n";
+            out << "4000,\"Revenue, Grants\",revenue,EUR\n";
+        }
+        QString error;
+        auto rows = parseCsvFile(csvPath, error);
+        REQUIRE(error.isEmpty());
+        REQUIRE(rows.size() == 4); // header + 3 data rows
+        REQUIRE(rows[1][1] == "Cash");
+        // Quoted field with embedded comma
+        REQUIRE(rows[3][1] == "Revenue, Grants");
+        REQUIRE(rows[3][3] == "EUR");
+    }
+
+    SECTION("Empty file") {
+        QString csvPath = tmpDir.path() + "/empty.csv";
+        { QFile f(csvPath); REQUIRE(f.open(QIODevice::WriteOnly)); }
+        QString error;
+        auto rows = parseCsvFile(csvPath, error);
+        REQUIRE(error.isEmpty());
+        REQUIRE(rows.empty());
     }
 }
