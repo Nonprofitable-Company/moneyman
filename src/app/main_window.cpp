@@ -6,6 +6,7 @@
 #include "views/general_ledger_widget.h"
 #include "views/income_statement_widget.h"
 #include "views/balance_sheet_widget.h"
+#include "views/close_period_dialog.h"
 #include "models/account_model.h"
 
 #include <QMenuBar>
@@ -74,6 +75,15 @@ void MainWindow::setupMenuBar()
     auto *style = QApplication::style();
 
     auto *fileMenu = menuBar()->addMenu("&File");
+    fileMenu->addAction("Close &Period...", this, [this]() {
+        ClosePeriodDialog dialog(m_database, this);
+        if (dialog.exec() == QDialog::Accepted) {
+            m_accountsWidget->model()->refresh();
+            refreshAllReports();
+            statusBar()->showMessage("Fiscal period closed successfully", 5000);
+        }
+    });
+    fileMenu->addSeparator();
     auto *quitAction = fileMenu->addAction(
         style->standardIcon(QStyle::SP_DialogCloseButton),
         "&Quit", QKeySequence::Quit, this, &QWidget::close);

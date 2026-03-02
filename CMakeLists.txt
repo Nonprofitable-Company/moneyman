@@ -42,6 +42,8 @@ add_library(moneyman_lib STATIC
     src/views/income_statement_widget.h
     src/views/balance_sheet_widget.cpp
     src/views/balance_sheet_widget.h
+    src/views/close_period_dialog.cpp
+    src/views/close_period_dialog.h
     src/utils/csv_export.cpp
     src/utils/csv_export.h
     src/app/main_window.cpp

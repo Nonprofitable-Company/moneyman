@@ -64,6 +64,18 @@ public:
     };
     std::vector<LedgerRow> ledgerForAccount(int64_t accountId) const;
 
+    // Fiscal periods
+    struct FiscalPeriod {
+        int64_t id = 0;
+        QString startDate;
+        QString endDate;
+        QString closedAt;
+    };
+    bool isDateInClosedPeriod(const QString &date) const;
+    bool closePeriod(const QString &startDate, const QString &endDate);
+    std::vector<FiscalPeriod> allFiscalPeriods() const;
+    int64_t ensureRetainedEarningsAccount();
+
 private:
     bool createSchema();
     bool setEncryptionKey(const QString &key);

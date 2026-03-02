@@ -137,6 +137,20 @@ bool Database::createSchema()
         return false;
     }
 
+    const QString periodsTable = R"(
+        CREATE TABLE IF NOT EXISTS fiscal_periods (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            start_date TEXT NOT NULL,
+            end_date TEXT NOT NULL,
+            closed_at TEXT NOT NULL
+        )
+    )";
+
+    if (!query.exec(periodsTable)) {
+        m_lastError = "Failed to create fiscal_periods table: " + query.lastError().text();
+        return false;
+    }
+
     return true;
 }
 
@@ -214,6 +228,12 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
 {
     if (lines.size() < 2) {
         m_lastError = "Journal entry must have at least 2 lines";
+        return false;
+    }
+
+    // Check closed period
+    if (isDateInClosedPeriod(date)) {
+        m_lastError = "Cannot post to a closed fiscal period";
         return false;
     }
 
@@ -346,6 +366,173 @@ std::vector<Database::LedgerRow> Database::ledgerForAccount(int64_t accountId) c
         row.debitCents = query.value(2).toLongLong();
         row.creditCents = query.value(3).toLongLong();
         result.push_back(row);
+    }
+    return result;
+}
+
+bool Database::isDateInClosedPeriod(const QString &date) const
+{
+    QSqlQuery query(m_db);
+    query.prepare("SELECT COUNT(*) FROM fiscal_periods WHERE ? >= start_date AND ? <= end_date");
+    query.addBindValue(date);
+    query.addBindValue(date);
+    query.exec();
+    if (query.next()) {
+        return query.value(0).toInt() > 0;
+    }
+    return false;
+}
+
+int64_t Database::ensureRetainedEarningsAccount()
+{
+    AccountRow existing = accountByCode(3100);
+    if (existing.id != 0) {
+        return existing.id;
+    }
+
+    if (!createAccount(3100, "Retained Earnings", "equity")) {
+        return -1;
+    }
+
+    AccountRow created = accountByCode(3100);
+    return created.id;
+}
+
+bool Database::closePeriod(const QString &startDate, const QString &endDate)
+{
+    // Check for overlap with existing closed periods
+    QSqlQuery overlapQuery(m_db);
+    overlapQuery.prepare("SELECT COUNT(*) FROM fiscal_periods WHERE start_date <= ? AND end_date >= ?");
+    overlapQuery.addBindValue(endDate);
+    overlapQuery.addBindValue(startDate);
+    overlapQuery.exec();
+    if (overlapQuery.next() && overlapQuery.value(0).toInt() > 0) {
+        m_lastError = "Period overlaps with an existing closed period";
+        return false;
+    }
+
+    int64_t retainedEarningsId = ensureRetainedEarningsAccount();
+    if (retainedEarningsId < 0) {
+        m_lastError = "Failed to create Retained Earnings account";
+        return false;
+    }
+
+    auto accounts = allAccounts();
+
+    // Sum revenue and expense balances
+    int64_t totalRevenue = 0;
+    int64_t totalExpenses = 0;
+    std::vector<std::pair<int64_t, int64_t>> revenueAccounts;  // id, balance
+    std::vector<std::pair<int64_t, int64_t>> expenseAccounts;  // id, balance
+
+    for (const auto &acct : accounts) {
+        if (acct.type == "revenue" && acct.balanceCents != 0) {
+            totalRevenue += acct.balanceCents;
+            revenueAccounts.push_back({acct.id, acct.balanceCents});
+        } else if (acct.type == "expense" && acct.balanceCents != 0) {
+            totalExpenses += acct.balanceCents;
+            expenseAccounts.push_back({acct.id, acct.balanceCents});
+        }
+    }
+
+    if (revenueAccounts.empty() && expenseAccounts.empty()) {
+        m_lastError = "No revenue or expense balances to close";
+        return false;
+    }
+
+    m_db.transaction();
+
+    // Create closing journal entry
+    QSqlQuery entryQuery(m_db);
+    entryQuery.prepare("INSERT INTO journal_entries (entry_date, description, posted) VALUES (?, ?, 1)");
+    entryQuery.addBindValue(endDate);
+    entryQuery.addBindValue("Closing entry — period " + startDate + " to " + endDate);
+    if (!entryQuery.exec()) {
+        m_lastError = entryQuery.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+    int64_t entryId = entryQuery.lastInsertId().toLongLong();
+
+    auto insertLine = [&](int64_t accountId, int64_t debit, int64_t credit) -> bool {
+        QSqlQuery q(m_db);
+        q.prepare("INSERT INTO journal_lines (entry_id, account_id, debit_cents, credit_cents) VALUES (?, ?, ?, ?)");
+        q.addBindValue(static_cast<qlonglong>(entryId));
+        q.addBindValue(static_cast<qlonglong>(accountId));
+        q.addBindValue(static_cast<qlonglong>(debit));
+        q.addBindValue(static_cast<qlonglong>(credit));
+        if (!q.exec()) {
+            m_lastError = q.lastError().text();
+            return false;
+        }
+        return true;
+    };
+
+    auto updateBalance = [&](int64_t accountId, int64_t delta) -> bool {
+        QSqlQuery q(m_db);
+        q.prepare("UPDATE accounts SET balance_cents = balance_cents + ? WHERE id = ?");
+        q.addBindValue(static_cast<qlonglong>(delta));
+        q.addBindValue(static_cast<qlonglong>(accountId));
+        if (!q.exec()) {
+            m_lastError = q.lastError().text();
+            return false;
+        }
+        return true;
+    };
+
+    // Close revenue accounts: debit revenue, credit retained earnings
+    // Revenue is credit-normal, so to zero it we debit it
+    for (const auto &[id, balance] : revenueAccounts) {
+        if (!insertLine(id, balance, 0)) { m_db.rollback(); return false; }
+        if (!updateBalance(id, -balance)) { m_db.rollback(); return false; }
+    }
+
+    // Close expense accounts: credit expense, debit retained earnings
+    // Expense is debit-normal, so to zero it we credit it
+    for (const auto &[id, balance] : expenseAccounts) {
+        if (!insertLine(id, 0, balance)) { m_db.rollback(); return false; }
+        if (!updateBalance(id, -balance)) { m_db.rollback(); return false; }
+    }
+
+    // Net income to retained earnings
+    int64_t netIncome = totalRevenue - totalExpenses;
+    if (netIncome > 0) {
+        // Credit retained earnings (equity is credit-normal)
+        if (!insertLine(retainedEarningsId, 0, netIncome)) { m_db.rollback(); return false; }
+        if (!updateBalance(retainedEarningsId, netIncome)) { m_db.rollback(); return false; }
+    } else if (netIncome < 0) {
+        // Debit retained earnings (net loss)
+        if (!insertLine(retainedEarningsId, -netIncome, 0)) { m_db.rollback(); return false; }
+        if (!updateBalance(retainedEarningsId, netIncome)) { m_db.rollback(); return false; }
+    }
+
+    // Record the closed period
+    QSqlQuery periodQuery(m_db);
+    periodQuery.prepare("INSERT INTO fiscal_periods (start_date, end_date, closed_at) VALUES (?, ?, datetime('now'))");
+    periodQuery.addBindValue(startDate);
+    periodQuery.addBindValue(endDate);
+    if (!periodQuery.exec()) {
+        m_lastError = periodQuery.lastError().text();
+        m_db.rollback();
+        return false;
+    }
+
+    m_db.commit();
+    return true;
+}
+
+std::vector<Database::FiscalPeriod> Database::allFiscalPeriods() const
+{
+    std::vector<FiscalPeriod> result;
+    QSqlQuery query(m_db);
+    query.exec("SELECT id, start_date, end_date, closed_at FROM fiscal_periods ORDER BY start_date");
+    while (query.next()) {
+        FiscalPeriod fp;
+        fp.id = query.value(0).toLongLong();
+        fp.startDate = query.value(1).toString();
+        fp.endDate = query.value(2).toString();
+        fp.closedAt = query.value(3).toString();
+        result.push_back(fp);
     }
     return result;
 }
