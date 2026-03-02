@@ -3,6 +3,7 @@
 #include "accounting/account.h"
 
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QComboBox>
 #include <QTableWidget>
 #include <QHeaderView>
@@ -10,6 +11,8 @@
 #include <QLabel>
 #include <QApplication>
 #include <QStyle>
+#include <QDateEdit>
+#include <QCheckBox>
 #include "utils/csv_export.h"
 
 GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
@@ -17,6 +20,9 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     , m_db(db)
     , m_accountCombo(new QComboBox(this))
     , m_table(new QTableWidget(this))
+    , m_dateFilterCheck(new QCheckBox("Filter by date:", this))
+    , m_fromDate(new QDateEdit(this))
+    , m_toDate(new QDateEdit(this))
 {
     m_table->setColumnCount(5);
     m_table->setHorizontalHeaderLabels({"Date", "Description", "Debit", "Credit", "Balance"});
@@ -32,6 +38,22 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     m_table->setColumnWidth(3, 100);
     m_table->setColumnWidth(4, 110);
 
+    QDate today = QDate::currentDate();
+    m_fromDate->setDisplayFormat("yyyy-MM-dd");
+    m_toDate->setDisplayFormat("yyyy-MM-dd");
+    m_fromDate->setCalendarPopup(true);
+    m_toDate->setCalendarPopup(true);
+    m_fromDate->setDate(QDate(today.year(), 1, 1));
+    m_toDate->setDate(today);
+    m_fromDate->setEnabled(false);
+    m_toDate->setEnabled(false);
+
+    connect(m_dateFilterCheck, &QCheckBox::toggled, m_fromDate, &QDateEdit::setEnabled);
+    connect(m_dateFilterCheck, &QCheckBox::toggled, m_toDate, &QDateEdit::setEnabled);
+    connect(m_dateFilterCheck, &QCheckBox::toggled, this, &GeneralLedgerWidget::onDateFilterChanged);
+    connect(m_fromDate, &QDateEdit::dateChanged, this, &GeneralLedgerWidget::onDateFilterChanged);
+    connect(m_toDate, &QDateEdit::dateChanged, this, &GeneralLedgerWidget::onDateFilterChanged);
+
     auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
     toolbar->addWidget(new QLabel(" Account: ", this));
@@ -41,12 +63,21 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
         "Export CSV", this, &GeneralLedgerWidget::exportCsv);
 
+    auto *dateBar = new QHBoxLayout;
+    dateBar->setContentsMargins(4, 0, 4, 0);
+    dateBar->addWidget(m_dateFilterCheck);
+    dateBar->addWidget(m_fromDate);
+    dateBar->addWidget(new QLabel("to", this));
+    dateBar->addWidget(m_toDate);
+    dateBar->addStretch();
+
     connect(m_accountCombo, &QComboBox::currentIndexChanged,
             this, &GeneralLedgerWidget::onAccountChanged);
 
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(toolbar);
+    layout->addLayout(dateBar);
     layout->addWidget(m_table, 1);
 
     populateAccountSelector();
@@ -55,6 +86,12 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
 void GeneralLedgerWidget::refresh()
 {
     populateAccountSelector();
+}
+
+void GeneralLedgerWidget::onDateFilterChanged()
+{
+    int index = m_accountCombo->currentIndex();
+    onAccountChanged(index);
 }
 
 void GeneralLedgerWidget::populateAccountSelector()
@@ -93,10 +130,26 @@ void GeneralLedgerWidget::onAccountChanged(int index)
 
 void GeneralLedgerWidget::loadLedger(int64_t accountId)
 {
-    auto rows = m_db->ledgerForAccount(accountId);
+    auto allRows = m_db->ledgerForAccount(accountId);
     AccountRow acct = m_db->accountById(accountId);
     AccountType type = accountTypeFromString(acct.type);
     bool debitNormal = isDebitNormal(type);
+
+    // Apply date filter
+    bool filtering = m_dateFilterCheck->isChecked();
+    QString fromStr = m_fromDate->date().toString("yyyy-MM-dd");
+    QString toStr = m_toDate->date().toString("yyyy-MM-dd");
+
+    std::vector<Database::LedgerRow> rows;
+    if (filtering) {
+        for (const auto &row : allRows) {
+            if (row.date >= fromStr && row.date <= toStr) {
+                rows.push_back(row);
+            }
+        }
+    } else {
+        rows = allRows;
+    }
 
     m_table->setRowCount(static_cast<int>(rows.size()));
 
@@ -105,7 +158,6 @@ void GeneralLedgerWidget::loadLedger(int64_t accountId)
     for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
         const auto &row = rows[static_cast<size_t>(i)];
 
-        // Running balance: debit-normal accounts increase with debits
         if (debitNormal) {
             runningBalance += row.debitCents - row.creditCents;
         } else {

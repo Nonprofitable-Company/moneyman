@@ -4,6 +4,8 @@
 #include <QWidget>
 
 class QTableView;
+class QLineEdit;
+class QSortFilterProxyModel;
 class AccountModel;
 class Database;
 
@@ -18,11 +20,14 @@ public:
 
 private slots:
     void onAddAccount();
+    void onFilterChanged(const QString &text);
 
 private:
     Database *m_db;
     AccountModel *m_model;
+    QSortFilterProxyModel *m_proxyModel;
     QTableView *m_tableView;
+    QLineEdit *m_filterEdit;
 };
 
 #endif // ACCOUNTS_WIDGET_H

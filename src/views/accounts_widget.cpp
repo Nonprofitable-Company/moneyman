@@ -12,14 +12,22 @@
 #include <QStyle>
 #include <QShortcut>
 #include <QKeySequence>
+#include <QLineEdit>
+#include <QSortFilterProxyModel>
 
 AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     : QWidget(parent)
     , m_db(db)
     , m_model(new AccountModel(db, this))
+    , m_proxyModel(new QSortFilterProxyModel(this))
     , m_tableView(new QTableView(this))
+    , m_filterEdit(new QLineEdit(this))
 {
-    m_tableView->setModel(m_model);
+    m_proxyModel->setSourceModel(m_model);
+    m_proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_proxyModel->setFilterKeyColumn(-1); // search all columns
+
+    m_tableView->setModel(m_proxyModel);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableView->setAlternatingRowColors(true);
     m_tableView->setShowGrid(true);
@@ -29,6 +37,10 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     m_tableView->setColumnWidth(AccountModel::ColCode, 70);
     m_tableView->setColumnWidth(AccountModel::ColType, 90);
     m_tableView->setColumnWidth(AccountModel::ColBalance, 100);
+
+    m_filterEdit->setPlaceholderText("Filter by name or code...");
+    m_filterEdit->setClearButtonEnabled(true);
+    connect(m_filterEdit, &QLineEdit::textChanged, this, &AccountsWidget::onFilterChanged);
 
     auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
@@ -43,7 +55,13 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addWidget(toolbar);
+    layout->addWidget(m_filterEdit);
     layout->addWidget(m_tableView);
+}
+
+void AccountsWidget::onFilterChanged(const QString &text)
+{
+    m_proxyModel->setFilterFixedString(text);
 }
 
 void AccountsWidget::onAddAccount()

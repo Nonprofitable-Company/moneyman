@@ -5,6 +5,8 @@
 
 class QComboBox;
 class QTableWidget;
+class QDateEdit;
+class QCheckBox;
 class Database;
 
 class GeneralLedgerWidget : public QWidget
@@ -20,6 +22,7 @@ public slots:
 
 private slots:
     void onAccountChanged(int index);
+    void onDateFilterChanged();
 
 private:
     void populateAccountSelector();
@@ -28,6 +31,9 @@ private:
     Database *m_db;
     QComboBox *m_accountCombo;
     QTableWidget *m_table;
+    QCheckBox *m_dateFilterCheck;
+    QDateEdit *m_fromDate;
+    QDateEdit *m_toDate;
 };
 
 #endif // GENERAL_LEDGER_WIDGET_H
