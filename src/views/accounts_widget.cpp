@@ -37,6 +37,7 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     m_tableView->verticalHeader()->hide();
     m_tableView->setColumnWidth(AccountModel::ColCode, 70);
     m_tableView->setColumnWidth(AccountModel::ColType, 90);
+    m_tableView->setColumnWidth(AccountModel::ColCurrency, 50);
     m_tableView->setColumnWidth(AccountModel::ColBalance, 100);
     m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tableView, &QTableView::customContextMenuRequested,
@@ -122,7 +123,7 @@ void AccountsWidget::onAddAccount()
         return;
     }
 
-    if (!m_db->createAccount(dialog.accountCode(), name, dialog.accountType())) {
+    if (!m_db->createAccount(dialog.accountCode(), name, dialog.accountType(), dialog.accountCurrency())) {
         QMessageBox::warning(this, "Error",
             "Failed to create account: " + m_db->lastError());
         return;

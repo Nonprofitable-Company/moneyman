@@ -19,11 +19,13 @@ public:
     int accountCode() const;
     QString accountName() const;
     QString accountType() const;
+    QString accountCurrency() const;
 
 private:
     QSpinBox *m_codeSpinBox;
     QLineEdit *m_nameEdit;
     QComboBox *m_typeCombo;
+    QComboBox *m_currencyCombo;
 };
 
 #endif // ADD_ACCOUNT_DIALOG_H

@@ -97,6 +97,7 @@ bool Database::createSchema()
             code INTEGER UNIQUE NOT NULL,
             name TEXT NOT NULL,
             type TEXT NOT NULL CHECK(type IN ('asset','liability','equity','revenue','expense')),
+            currency TEXT NOT NULL DEFAULT 'USD',
             balance_cents INTEGER NOT NULL DEFAULT 0
         )
     )";
@@ -154,13 +155,15 @@ bool Database::createSchema()
     return true;
 }
 
-bool Database::createAccount(int code, const QString &name, const QString &type)
+bool Database::createAccount(int code, const QString &name, const QString &type,
+                              const QString &currency)
 {
     QSqlQuery query(m_db);
-    query.prepare("INSERT INTO accounts (code, name, type) VALUES (?, ?, ?)");
+    query.prepare("INSERT INTO accounts (code, name, type, currency) VALUES (?, ?, ?, ?)");
     query.addBindValue(code);
     query.addBindValue(name);
     query.addBindValue(type);
+    query.addBindValue(currency);
 
     if (!query.exec()) {
         m_lastError = query.lastError().text();
@@ -188,7 +191,7 @@ std::vector<AccountRow> Database::allAccounts() const
 {
     std::vector<AccountRow> result;
     QSqlQuery query(m_db);
-    query.exec("SELECT id, code, name, type, balance_cents FROM accounts ORDER BY code");
+    query.exec("SELECT id, code, name, type, currency, balance_cents FROM accounts ORDER BY code");
 
     while (query.next()) {
         AccountRow row;
@@ -196,7 +199,8 @@ std::vector<AccountRow> Database::allAccounts() const
         row.code = query.value(1).toInt();
         row.name = query.value(2).toString();
         row.type = query.value(3).toString();
-        row.balanceCents = query.value(4).toLongLong();
+        row.currency = query.value(4).toString();
+        row.balanceCents = query.value(5).toLongLong();
         result.push_back(row);
     }
     return result;
@@ -205,7 +209,7 @@ std::vector<AccountRow> Database::allAccounts() const
 AccountRow Database::accountById(int64_t id) const
 {
     QSqlQuery query(m_db);
-    query.prepare("SELECT id, code, name, type, balance_cents FROM accounts WHERE id = ?");
+    query.prepare("SELECT id, code, name, type, currency, balance_cents FROM accounts WHERE id = ?");
     query.addBindValue(static_cast<qlonglong>(id));
     query.exec();
 
@@ -215,7 +219,8 @@ AccountRow Database::accountById(int64_t id) const
         row.code = query.value(1).toInt();
         row.name = query.value(2).toString();
         row.type = query.value(3).toString();
-        row.balanceCents = query.value(4).toLongLong();
+        row.currency = query.value(4).toString();
+        row.balanceCents = query.value(5).toLongLong();
     }
     return row;
 }
@@ -223,7 +228,7 @@ AccountRow Database::accountById(int64_t id) const
 AccountRow Database::accountByCode(int code) const
 {
     QSqlQuery query(m_db);
-    query.prepare("SELECT id, code, name, type, balance_cents FROM accounts WHERE code = ?");
+    query.prepare("SELECT id, code, name, type, currency, balance_cents FROM accounts WHERE code = ?");
     query.addBindValue(code);
     query.exec();
 
@@ -233,7 +238,8 @@ AccountRow Database::accountByCode(int code) const
         row.code = query.value(1).toInt();
         row.name = query.value(2).toString();
         row.type = query.value(3).toString();
-        row.balanceCents = query.value(4).toLongLong();
+        row.currency = query.value(4).toString();
+        row.balanceCents = query.value(5).toLongLong();
     }
     return row;
 }

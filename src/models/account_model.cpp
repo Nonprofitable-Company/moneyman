@@ -31,6 +31,7 @@ QVariant AccountModel::data(const QModelIndex &index, int role) const
         case ColCode:    return acct.code;
         case ColName:    return acct.name;
         case ColType:    return acct.type;
+        case ColCurrency: return acct.currency;
         case ColBalance: {
             // Format cents as dollars with 2 decimal places
             double dollars = static_cast<double>(acct.balanceCents) / 100.0;
@@ -55,6 +56,7 @@ QVariant AccountModel::headerData(int section, Qt::Orientation orientation, int 
     case ColCode:    return "Code";
     case ColName:    return "Name";
     case ColType:    return "Type";
+    case ColCurrency: return "Ccy";
     case ColBalance: return "Balance";
     }
     return {};

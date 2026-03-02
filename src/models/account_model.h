@@ -10,7 +10,7 @@ class AccountModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    enum Column { ColCode = 0, ColName, ColType, ColBalance, ColCount };
+    enum Column { ColCode = 0, ColName, ColType, ColCurrency, ColBalance, ColCount };
 
     explicit AccountModel(Database *db, QObject *parent = nullptr);
 

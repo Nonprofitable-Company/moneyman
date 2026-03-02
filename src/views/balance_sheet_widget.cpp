@@ -66,8 +66,12 @@ void BalanceSheetWidget::refresh()
 
     int64_t netIncome = totalRevenue - totalExpenses;
 
-    auto formatCents = [](int64_t cents) -> QString {
-        return QString::number(static_cast<double>(cents) / 100.0, 'f', 2);
+    auto formatCents = [](int64_t cents, const QString &ccy = QString()) -> QString {
+        QString val = QString::number(static_cast<double>(cents) / 100.0, 'f', 2);
+        if (!ccy.isEmpty() && ccy != "USD") {
+            return val + " " + ccy;
+        }
+        return val;
     };
 
     auto setBoldRow = [&](int r, const QString &label, const QString &amount) {
@@ -95,7 +99,7 @@ void BalanceSheetWidget::refresh()
     int64_t totalAssets = 0;
     for (const auto &acct : assets) {
         auto *nameItem = new QTableWidgetItem(QString("  %1 — %2").arg(acct.code).arg(acct.name));
-        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents));
+        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents, acct.currency));
         amtItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(row, 0, nameItem);
         m_table->setItem(row, 1, amtItem);
@@ -110,7 +114,7 @@ void BalanceSheetWidget::refresh()
     int64_t totalLiabilities = 0;
     for (const auto &acct : liabilities) {
         auto *nameItem = new QTableWidgetItem(QString("  %1 — %2").arg(acct.code).arg(acct.name));
-        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents));
+        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents, acct.currency));
         amtItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(row, 0, nameItem);
         m_table->setItem(row, 1, amtItem);
@@ -125,7 +129,7 @@ void BalanceSheetWidget::refresh()
     int64_t totalEquity = 0;
     for (const auto &acct : equity) {
         auto *nameItem = new QTableWidgetItem(QString("  %1 — %2").arg(acct.code).arg(acct.name));
-        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents));
+        auto *amtItem = new QTableWidgetItem(formatCents(acct.balanceCents, acct.currency));
         amtItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_table->setItem(row, 0, nameItem);
         m_table->setItem(row, 1, amtItem);

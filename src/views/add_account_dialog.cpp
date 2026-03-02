@@ -32,6 +32,17 @@ AddAccountDialog::AddAccountDialog(QWidget *parent)
     m_typeCombo->addItem("Expense", "expense");
     form->addRow("Account Type:", m_typeCombo);
 
+    m_currencyCombo = new QComboBox(this);
+    m_currencyCombo->addItem("USD");
+    m_currencyCombo->addItem("EUR");
+    m_currencyCombo->addItem("GBP");
+    m_currencyCombo->addItem("CAD");
+    m_currencyCombo->addItem("JPY");
+    m_currencyCombo->addItem("AUD");
+    m_currencyCombo->addItem("CHF");
+    m_currencyCombo->setEditable(true);
+    form->addRow("Currency:", m_currencyCombo);
+
     auto *buttons = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -65,4 +76,9 @@ QString AddAccountDialog::accountName() const
 QString AddAccountDialog::accountType() const
 {
     return m_typeCombo->currentData().toString();
+}
+
+QString AddAccountDialog::accountCurrency() const
+{
+    return m_currencyCombo->currentText().trimmed().toUpper();
 }

@@ -58,6 +58,23 @@ TEST_CASE("Account CRUD", "[db]")
         REQUIRE_FALSE(db.createAccount(1000, "Other Cash", "asset"));
     }
 
+    SECTION("create account with currency") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset", "USD"));
+        REQUIRE(db.createAccount(1100, "Euro Cash", "asset", "EUR"));
+
+        auto usd = db.accountByCode(1000);
+        REQUIRE(usd.currency == "USD");
+
+        auto eur = db.accountByCode(1100);
+        REQUIRE(eur.currency == "EUR");
+    }
+
+    SECTION("default currency is USD") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        auto acct = db.accountByCode(1000);
+        REQUIRE(acct.currency == "USD");
+    }
+
     SECTION("update account name and type") {
         REQUIRE(db.createAccount(1000, "Cash", "asset"));
         auto acct = db.accountByCode(1000);

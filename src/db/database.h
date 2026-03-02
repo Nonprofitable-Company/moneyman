@@ -12,6 +12,7 @@ struct AccountRow {
     int code = 0;
     QString name;
     QString type; // asset, liability, equity, revenue, expense
+    QString currency = "USD";
     int64_t balanceCents = 0;
 };
 
@@ -45,7 +46,8 @@ public:
     QString lastError() const;
 
     // Accounts
-    bool createAccount(int code, const QString &name, const QString &type);
+    bool createAccount(int code, const QString &name, const QString &type,
+                       const QString &currency = "USD");
     bool updateAccount(int64_t id, const QString &name, const QString &type);
     std::vector<AccountRow> allAccounts() const;
     AccountRow accountById(int64_t id) const;
