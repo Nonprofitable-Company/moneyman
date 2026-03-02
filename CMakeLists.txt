@@ -48,6 +48,8 @@ add_library(moneyman_lib STATIC
     src/views/audit_log_widget.h
     src/views/dashboard_widget.cpp
     src/views/dashboard_widget.h
+    src/views/journal_list_widget.cpp
+    src/views/journal_list_widget.h
     src/views/password_dialog.cpp
     src/views/password_dialog.h
     src/views/import_csv_dialog.cpp

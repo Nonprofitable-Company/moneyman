@@ -7,6 +7,7 @@
 #include "views/general_ledger_widget.h"
 #include "views/income_statement_widget.h"
 #include "views/balance_sheet_widget.h"
+#include "views/journal_list_widget.h"
 #include "views/audit_log_widget.h"
 #include "views/close_period_dialog.h"
 #include "views/password_dialog.h"
@@ -75,6 +76,7 @@ void MainWindow::setupUi()
     m_generalLedgerWidget = new GeneralLedgerWidget(m_database, this);
     m_incomeStatementWidget = new IncomeStatementWidget(m_database, this);
     m_balanceSheetWidget = new BalanceSheetWidget(m_database, this);
+    m_journalListWidget = new JournalListWidget(m_database, this);
     m_auditLogWidget = new AuditLogWidget(m_database, this);
 
     m_reportTabs->addTab(m_dashboardWidget, "Dashboard");
@@ -82,6 +84,7 @@ void MainWindow::setupUi()
     m_reportTabs->addTab(m_generalLedgerWidget, "General Ledger");
     m_reportTabs->addTab(m_incomeStatementWidget, "Income Statement");
     m_reportTabs->addTab(m_balanceSheetWidget, "Balance Sheet");
+    m_reportTabs->addTab(m_journalListWidget, "Journal Entries");
     m_reportTabs->addTab(m_auditLogWidget, "Audit Log");
 
     setCentralWidget(m_reportTabs);
@@ -252,5 +255,6 @@ void MainWindow::refreshAllReports()
     m_generalLedgerWidget->refresh();
     m_incomeStatementWidget->refresh();
     m_balanceSheetWidget->refresh();
+    m_journalListWidget->refresh();
     m_auditLogWidget->refresh();
 }

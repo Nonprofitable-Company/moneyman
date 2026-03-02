@@ -10,6 +10,7 @@ class TrialBalanceWidget;
 class GeneralLedgerWidget;
 class IncomeStatementWidget;
 class BalanceSheetWidget;
+class JournalListWidget;
 class AuditLogWidget;
 class QTabWidget;
 class QDockWidget;
@@ -44,6 +45,7 @@ private:
     GeneralLedgerWidget *m_generalLedgerWidget;
     IncomeStatementWidget *m_incomeStatementWidget;
     BalanceSheetWidget *m_balanceSheetWidget;
+    JournalListWidget *m_journalListWidget;
     AuditLogWidget *m_auditLogWidget;
 };
 
