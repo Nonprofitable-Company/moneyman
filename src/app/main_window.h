@@ -5,6 +5,7 @@
 
 class Database;
 class AccountsWidget;
+class DashboardWidget;
 class TrialBalanceWidget;
 class GeneralLedgerWidget;
 class IncomeStatementWidget;
@@ -38,6 +39,7 @@ private:
     AccountsWidget *m_accountsWidget;
     QDockWidget *m_accountsDock;
     QTabWidget *m_reportTabs;
+    DashboardWidget *m_dashboardWidget;
     TrialBalanceWidget *m_trialBalanceWidget;
     GeneralLedgerWidget *m_generalLedgerWidget;
     IncomeStatementWidget *m_incomeStatementWidget;

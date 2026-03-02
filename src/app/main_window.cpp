@@ -1,5 +1,6 @@
 #include "main_window.h"
 #include "db/database.h"
+#include "views/dashboard_widget.h"
 #include "views/accounts_widget.h"
 #include "views/journal_entry_dialog.h"
 #include "views/trial_balance_widget.h"
@@ -69,12 +70,14 @@ void MainWindow::setupUi()
 
     // Reports as tabbed central widget
     m_reportTabs = new QTabWidget(this);
+    m_dashboardWidget = new DashboardWidget(m_database, this);
     m_trialBalanceWidget = new TrialBalanceWidget(m_database, this);
     m_generalLedgerWidget = new GeneralLedgerWidget(m_database, this);
     m_incomeStatementWidget = new IncomeStatementWidget(m_database, this);
     m_balanceSheetWidget = new BalanceSheetWidget(m_database, this);
     m_auditLogWidget = new AuditLogWidget(m_database, this);
 
+    m_reportTabs->addTab(m_dashboardWidget, "Dashboard");
     m_reportTabs->addTab(m_trialBalanceWidget, "Trial Balance");
     m_reportTabs->addTab(m_generalLedgerWidget, "General Ledger");
     m_reportTabs->addTab(m_incomeStatementWidget, "Income Statement");
@@ -244,6 +247,7 @@ void MainWindow::onChangeKey()
 
 void MainWindow::refreshAllReports()
 {
+    m_dashboardWidget->refresh();
     m_trialBalanceWidget->refresh();
     m_generalLedgerWidget->refresh();
     m_incomeStatementWidget->refresh();
