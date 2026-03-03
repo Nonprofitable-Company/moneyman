@@ -12,6 +12,7 @@
 #include "views/close_period_dialog.h"
 #include "views/password_dialog.h"
 #include "views/import_csv_dialog.h"
+#include "views/help_browser_dialog.h"
 #include "models/account_model.h"
 
 #include <QMenuBar>
@@ -175,6 +176,11 @@ void MainWindow::setupMenuBar()
     });
 
     auto *helpMenu = menuBar()->addMenu("&Help");
+    helpMenu->addAction("&User Guide", QKeySequence::HelpContents, this, [this]() {
+        HelpBrowserDialog dialog(this);
+        dialog.exec();
+    });
+    helpMenu->addSeparator();
     helpMenu->addAction("&About MoneyMan", this, [this]() {
         QMessageBox::about(this, "About MoneyMan",
             "<h2>MoneyMan v0.1.0</h2>"
