@@ -54,6 +54,8 @@ add_library(moneyman_lib STATIC
     src/views/password_dialog.h
     src/views/import_csv_dialog.cpp
     src/views/import_csv_dialog.h
+    src/views/help_browser_dialog.cpp
+    src/views/help_browser_dialog.h
     src/utils/csv_import.cpp
     src/utils/csv_import.h
     src/utils/print_report.cpp
