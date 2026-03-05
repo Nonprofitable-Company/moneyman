@@ -8,8 +8,7 @@
 #include <QToolBar>
 #include <QHeaderView>
 #include <QMessageBox>
-#include <QApplication>
-#include <QStyle>
+#include <QIcon>
 #include <QShortcut>
 #include <QKeySequence>
 #include <QLineEdit>
@@ -47,10 +46,8 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     m_filterEdit->setClearButtonEnabled(true);
     connect(m_filterEdit, &QLineEdit::textChanged, this, &AccountsWidget::onFilterChanged);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(
-        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+    toolbar->addAction(QIcon(":/icons/add.svg"),
         "Add Account (Ctrl+A)", this, &AccountsWidget::onAddAccount);
 
     auto *shortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_A), this);

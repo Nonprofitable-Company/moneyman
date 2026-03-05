@@ -5,8 +5,7 @@
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QToolBar>
-#include <QApplication>
-#include <QStyle>
+#include <QIcon>
 #include "utils/csv_export.h"
 #include "utils/print_report.h"
 
@@ -28,13 +27,12 @@ AuditLogWidget::AuditLogWidget(Database *db, QWidget *parent)
     m_table->setColumnWidth(1, 160);
     m_table->setColumnWidth(2, 160);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &AuditLogWidget::refresh);
-    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+    toolbar->addAction(QIcon(":/icons/export-csv.svg"),
         "Export CSV", this, &AuditLogWidget::exportCsv);
-    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+    toolbar->addAction(QIcon(":/icons/export-pdf.svg"),
         "Export PDF", this, [this]() {
             printReportToPdf(m_table, "Audit Log", this, "audit_log.pdf");
         });
