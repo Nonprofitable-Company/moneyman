@@ -1,4 +1,5 @@
 #include "app/main_window.h"
+#include "theme/theme_manager.h"
 #include <QApplication>
 #include <QFontDatabase>
 #include <QFont>
@@ -19,6 +20,8 @@ int main(int argc, char *argv[])
             app.setFont(defaultFont);
         }
     }
+
+    ThemeManager::instance()->initialize();
 
     MainWindow window;
     window.show();

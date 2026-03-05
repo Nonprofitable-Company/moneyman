@@ -62,6 +62,8 @@ add_library(moneyman_lib STATIC
     src/utils/print_report.h
     src/utils/csv_export.cpp
     src/utils/csv_export.h
+    src/theme/theme_manager.cpp
+    src/theme/theme_manager.h
     src/app/main_window.cpp
     src/app/main_window.h
 )
