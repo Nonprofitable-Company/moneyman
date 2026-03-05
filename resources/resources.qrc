@@ -1,5 +1,18 @@
 <RCC>
   <qresource prefix="/">
     <file>fonts/Inter-Variable.ttf</file>
+    <file>icons/dashboard.svg</file>
+    <file>icons/trial-balance.svg</file>
+    <file>icons/general-ledger.svg</file>
+    <file>icons/income-statement.svg</file>
+    <file>icons/balance-sheet.svg</file>
+    <file>icons/journal-entries.svg</file>
+    <file>icons/audit-log.svg</file>
+    <file>icons/accounts.svg</file>
+    <file>icons/refresh.svg</file>
+    <file>icons/add.svg</file>
+    <file>icons/export-csv.svg</file>
+    <file>icons/export-pdf.svg</file>
+    <file>icons/backup.svg</file>
   </qresource>
 </RCC>
