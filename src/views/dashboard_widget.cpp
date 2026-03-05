@@ -8,11 +8,11 @@
 #include <QLabel>
 #include <QFrame>
 #include <QToolBar>
-#include <QApplication>
-#include <QStyle>
 #include <QFont>
 #include <QTableWidget>
 #include <QHeaderView>
+#include <QIcon>
+#include <QStyle>
 
 static QString formatCents(int64_t cents)
 {
@@ -23,41 +23,35 @@ DashboardWidget::DashboardWidget(Database *db, QWidget *parent)
     : QWidget(parent)
     , m_db(db)
 {
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &DashboardWidget::refresh);
 
-    // Create metric cards
-    m_totalAssets = makeMetricCard("Total Assets", this);
-    m_totalLiabilities = makeMetricCard("Total Liabilities", this);
-    m_totalEquity = makeMetricCard("Total Equity", this);
-    m_totalRevenue = makeMetricCard("Total Revenue", this);
-    m_totalExpenses = makeMetricCard("Total Expenses", this);
-    m_netIncome = makeMetricCard("Net Income", this);
-    m_accountCount = makeMetricCard("Accounts", this);
-    m_entryCount = makeMetricCard("Journal Entries", this);
-    m_balanceStatus = makeMetricCard("Trial Balance", this);
+    m_totalAssets = makeMetricCard("Total Assets");
+    m_totalLiabilities = makeMetricCard("Total Liabilities");
+    m_totalEquity = makeMetricCard("Total Equity");
+    m_totalRevenue = makeMetricCard("Total Revenue");
+    m_totalExpenses = makeMetricCard("Total Expenses");
+    m_netIncome = makeMetricCard("Net Income", true);
+    m_accountCount = makeMetricCard("Accounts");
+    m_entryCount = makeMetricCard("Journal Entries");
+    m_balanceStatus = makeMetricCard("Trial Balance");
 
     auto *grid = new QGridLayout;
-    grid->setSpacing(12);
+    grid->setSpacing(16);
 
-    // Row 0: Balance sheet summary
-    grid->addWidget(m_totalAssets->parentWidget(), 0, 0);
-    grid->addWidget(m_totalLiabilities->parentWidget(), 0, 1);
-    grid->addWidget(m_totalEquity->parentWidget(), 0, 2);
+    grid->addWidget(m_totalAssets.frame, 0, 0);
+    grid->addWidget(m_totalLiabilities.frame, 0, 1);
+    grid->addWidget(m_totalEquity.frame, 0, 2);
 
-    // Row 1: Income summary
-    grid->addWidget(m_totalRevenue->parentWidget(), 1, 0);
-    grid->addWidget(m_totalExpenses->parentWidget(), 1, 1);
-    grid->addWidget(m_netIncome->parentWidget(), 1, 2);
+    grid->addWidget(m_totalRevenue.frame, 1, 0);
+    grid->addWidget(m_totalExpenses.frame, 1, 1);
+    grid->addWidget(m_netIncome.frame, 1, 2);
 
-    // Row 2: Stats
-    grid->addWidget(m_accountCount->parentWidget(), 2, 0);
-    grid->addWidget(m_entryCount->parentWidget(), 2, 1);
-    grid->addWidget(m_balanceStatus->parentWidget(), 2, 2);
+    grid->addWidget(m_accountCount.frame, 2, 0);
+    grid->addWidget(m_entryCount.frame, 2, 1);
+    grid->addWidget(m_balanceStatus.frame, 2, 2);
 
-    // Recent activity tables
     m_recentEntries = new QTableWidget(this);
     m_recentEntries->setColumnCount(3);
     m_recentEntries->setHorizontalHeaderLabels({"Date", "Description", "#Lines"});
@@ -80,16 +74,20 @@ DashboardWidget::DashboardWidget(Database *db, QWidget *parent)
 
     auto *recentLayout = new QHBoxLayout;
     auto *entriesGroup = new QVBoxLayout;
-    entriesGroup->addWidget(new QLabel("<b>Recent Journal Entries</b>", this));
+    auto *entriesHeader = new QLabel("Recent Journal Entries", this);
+    entriesHeader->setObjectName("sectionHeader");
+    entriesGroup->addWidget(entriesHeader);
     entriesGroup->addWidget(m_recentEntries);
     auto *auditGroup = new QVBoxLayout;
-    auditGroup->addWidget(new QLabel("<b>Recent Audit Log</b>", this));
+    auto *auditHeader = new QLabel("Recent Audit Log", this);
+    auditHeader->setObjectName("sectionHeader");
+    auditGroup->addWidget(auditHeader);
     auditGroup->addWidget(m_recentAudit);
     recentLayout->addLayout(entriesGroup);
     recentLayout->addLayout(auditGroup);
 
     auto *layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(16, 0, 16, 16);
     layout->addWidget(toolbar);
     layout->addLayout(grid);
     layout->addLayout(recentLayout);
@@ -98,29 +96,25 @@ DashboardWidget::DashboardWidget(Database *db, QWidget *parent)
     refresh();
 }
 
-QLabel *DashboardWidget::makeMetricCard(const QString &title, QWidget *parent)
+DashboardWidget::MetricCard DashboardWidget::makeMetricCard(
+    const QString &title, bool accent)
 {
-    auto *frame = new QFrame(parent);
-    frame->setFrameShape(QFrame::StyledPanel);
-    frame->setStyleSheet(
-        "QFrame { background: #f8f9fa; border: 1px solid #dee2e6; "
-        "border-radius: 6px; padding: 12px; }");
+    MetricCard card;
+    card.frame = new QFrame(this);
+    card.frame->setObjectName(accent ? "metricCardAccent" : "metricCard");
 
-    auto *titleLabel = new QLabel(title, frame);
-    titleLabel->setStyleSheet("color: #6c757d; font-size: 11px; font-weight: bold;");
+    card.title = new QLabel(title, card.frame);
+    card.title->setObjectName("metricTitle");
 
-    auto *valueLabel = new QLabel("--", frame);
-    QFont font = valueLabel->font();
-    font.setPointSize(18);
-    font.setBold(true);
-    valueLabel->setFont(font);
-    valueLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    card.value = new QLabel("--", card.frame);
+    card.value->setObjectName("metricValue");
+    card.value->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    auto *layout = new QVBoxLayout(frame);
-    layout->addWidget(titleLabel);
-    layout->addWidget(valueLabel);
+    auto *layout = new QVBoxLayout(card.frame);
+    layout->addWidget(card.title);
+    layout->addWidget(card.value);
 
-    return valueLabel;
+    return card;
 }
 
 void DashboardWidget::refresh()
@@ -133,35 +127,36 @@ void DashboardWidget::refresh()
     for (const auto &acct : accounts) {
         AccountType type = accountTypeFromString(acct.type);
         switch (type) {
-        case AccountType::Asset:    assets += acct.balanceCents; break;
+        case AccountType::Asset:     assets += acct.balanceCents; break;
         case AccountType::Liability: liabilities += acct.balanceCents; break;
-        case AccountType::Equity:   equity += acct.balanceCents; break;
-        case AccountType::Revenue:  revenue += acct.balanceCents; break;
-        case AccountType::Expense:  expenses += acct.balanceCents; break;
+        case AccountType::Equity:    equity += acct.balanceCents; break;
+        case AccountType::Revenue:   revenue += acct.balanceCents; break;
+        case AccountType::Expense:   expenses += acct.balanceCents; break;
         default: break;
         }
     }
 
     int64_t netIncome = revenue - expenses;
 
-    m_totalAssets->setText("$" + formatCents(assets));
-    m_totalLiabilities->setText("$" + formatCents(liabilities));
-    m_totalEquity->setText("$" + formatCents(equity));
-    m_totalRevenue->setText("$" + formatCents(revenue));
-    m_totalExpenses->setText("$" + formatCents(expenses));
+    m_totalAssets.value->setText("$" + formatCents(assets));
+    m_totalLiabilities.value->setText("$" + formatCents(liabilities));
+    m_totalEquity.value->setText("$" + formatCents(equity));
+    m_totalRevenue.value->setText("$" + formatCents(revenue));
+    m_totalExpenses.value->setText("$" + formatCents(expenses));
 
     if (netIncome >= 0) {
-        m_netIncome->setText("$" + formatCents(netIncome));
-        m_netIncome->setStyleSheet("color: green; font-size: 18pt; font-weight: bold;");
+        m_netIncome.value->setText("$" + formatCents(netIncome));
+        m_netIncome.value->setObjectName("metricValueSuccess");
     } else {
-        m_netIncome->setText("-$" + formatCents(-netIncome));
-        m_netIncome->setStyleSheet("color: red; font-size: 18pt; font-weight: bold;");
+        m_netIncome.value->setText("-$" + formatCents(-netIncome));
+        m_netIncome.value->setObjectName("metricValueDanger");
     }
+    m_netIncome.value->style()->unpolish(m_netIncome.value);
+    m_netIncome.value->style()->polish(m_netIncome.value);
 
-    m_accountCount->setText(QString::number(accounts.size()));
-    m_entryCount->setText(QString::number(entries.size()));
+    m_accountCount.value->setText(QString::number(accounts.size()));
+    m_entryCount.value->setText(QString::number(entries.size()));
 
-    // Check trial balance
     int64_t totalDebits = 0, totalCredits = 0;
     for (const auto &acct : accounts) {
         AccountType type = accountTypeFromString(acct.type);
@@ -175,14 +170,15 @@ void DashboardWidget::refresh()
     }
 
     if (totalDebits == totalCredits) {
-        m_balanceStatus->setText("In Balance");
-        m_balanceStatus->setStyleSheet("color: green; font-size: 18pt; font-weight: bold;");
+        m_balanceStatus.value->setText("In Balance");
+        m_balanceStatus.value->setObjectName("metricValueSuccess");
     } else {
-        m_balanceStatus->setText("OUT OF BALANCE");
-        m_balanceStatus->setStyleSheet("color: red; font-size: 18pt; font-weight: bold;");
+        m_balanceStatus.value->setText("OUT OF BALANCE");
+        m_balanceStatus.value->setObjectName("metricValueDanger");
     }
+    m_balanceStatus.value->style()->unpolish(m_balanceStatus.value);
+    m_balanceStatus.value->style()->polish(m_balanceStatus.value);
 
-    // Recent journal entries (last 5)
     m_recentEntries->setRowCount(0);
     int entryCount = std::min(static_cast<int>(entries.size()), 5);
     for (int i = 0; i < entryCount; ++i) {
@@ -191,10 +187,10 @@ void DashboardWidget::refresh()
         m_recentEntries->insertRow(row);
         m_recentEntries->setItem(row, 0, new QTableWidgetItem(e.date));
         m_recentEntries->setItem(row, 1, new QTableWidgetItem(e.description));
-        m_recentEntries->setItem(row, 2, new QTableWidgetItem(QString::number(e.lines.size())));
+        m_recentEntries->setItem(row, 2,
+            new QTableWidgetItem(QString::number(e.lines.size())));
     }
 
-    // Recent audit log (last 5)
     auto auditLog = m_db->allAuditLog();
     m_recentAudit->setRowCount(0);
     int auditCount = std::min(static_cast<int>(auditLog.size()), 5);

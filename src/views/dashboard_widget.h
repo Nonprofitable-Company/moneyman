@@ -6,6 +6,7 @@
 class Database;
 class QLabel;
 class QTableWidget;
+class QFrame;
 
 class DashboardWidget : public QWidget
 {
@@ -18,18 +19,24 @@ public slots:
     void refresh();
 
 private:
-    QLabel *makeMetricCard(const QString &title, QWidget *parent);
+    struct MetricCard {
+        QFrame *frame;
+        QLabel *title;
+        QLabel *value;
+    };
+
+    MetricCard makeMetricCard(const QString &title, bool accent = false);
 
     Database *m_db;
-    QLabel *m_totalAssets;
-    QLabel *m_totalLiabilities;
-    QLabel *m_totalEquity;
-    QLabel *m_totalRevenue;
-    QLabel *m_totalExpenses;
-    QLabel *m_netIncome;
-    QLabel *m_accountCount;
-    QLabel *m_entryCount;
-    QLabel *m_balanceStatus;
+    MetricCard m_totalAssets;
+    MetricCard m_totalLiabilities;
+    MetricCard m_totalEquity;
+    MetricCard m_totalRevenue;
+    MetricCard m_totalExpenses;
+    MetricCard m_netIncome;
+    MetricCard m_accountCount;
+    MetricCard m_entryCount;
+    MetricCard m_balanceStatus;
     QTableWidget *m_recentEntries;
     QTableWidget *m_recentAudit;
 };
