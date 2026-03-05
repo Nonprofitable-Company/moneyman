@@ -6,7 +6,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QToolBar>
-#include <QApplication>
+#include <QIcon>
 #include <QStyle>
 #include "utils/csv_export.h"
 #include "utils/print_report.h"
@@ -29,13 +29,12 @@ BalanceSheetWidget::BalanceSheetWidget(Database *db, QWidget *parent)
     m_table->verticalHeader()->hide();
     m_table->setColumnWidth(1, 130);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &BalanceSheetWidget::refresh);
-    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+    toolbar->addAction(QIcon(":/icons/export-csv.svg"),
         "Export CSV", this, &BalanceSheetWidget::exportCsv);
-    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+    toolbar->addAction(QIcon(":/icons/export-pdf.svg"),
         "Export PDF", this, [this]() {
             printReportToPdf(m_table, "Balance Sheet", this, "balance_sheet.pdf");
         });
@@ -165,13 +164,15 @@ void BalanceSheetWidget::refresh()
     // Balance check: Assets == Liabilities + Equity
     if (totalAssets == totalLE) {
         m_statusLabel->setText("Assets = Liabilities + Equity (Balanced)");
-        m_statusLabel->setStyleSheet("color: green; font-weight: bold;");
+        m_statusLabel->setObjectName("statusSuccess");
     } else {
         double diff = static_cast<double>(totalAssets - totalLE) / 100.0;
         m_statusLabel->setText(QString("OUT OF BALANCE by %1").arg(
             QString::number(qAbs(diff), 'f', 2)));
-        m_statusLabel->setStyleSheet("color: red; font-weight: bold;");
+        m_statusLabel->setObjectName("statusDanger");
     }
+    m_statusLabel->style()->unpolish(m_statusLabel);
+    m_statusLabel->style()->polish(m_statusLabel);
 }
 
 void BalanceSheetWidget::exportCsv()

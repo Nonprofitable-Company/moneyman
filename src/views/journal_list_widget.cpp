@@ -9,8 +9,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
-#include <QApplication>
-#include <QStyle>
+#include <QIcon>
 #include "utils/csv_export.h"
 #include "utils/print_report.h"
 
@@ -41,13 +40,12 @@ JournalListWidget::JournalListWidget(Database *db, QWidget *parent)
     m_filterEdit->setClearButtonEnabled(true);
     connect(m_filterEdit, &QLineEdit::textChanged, this, &JournalListWidget::onFilterChanged);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &JournalListWidget::refresh);
-    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+    toolbar->addAction(QIcon(":/icons/export-csv.svg"),
         "Export CSV", this, &JournalListWidget::exportCsv);
-    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+    toolbar->addAction(QIcon(":/icons/export-pdf.svg"),
         "Export PDF", this, [this]() {
             printReportToPdf(m_table, "Journal Entries", this, "journal_entries.pdf");
         });

@@ -8,7 +8,7 @@
 #include <QLabel>
 #include <QToolBar>
 #include <QFont>
-#include <QApplication>
+#include <QIcon>
 #include <QStyle>
 #include <QDateEdit>
 #include <QCheckBox>
@@ -34,13 +34,12 @@ IncomeStatementWidget::IncomeStatementWidget(Database *db, QWidget *parent)
     m_table->verticalHeader()->hide();
     m_table->setColumnWidth(1, 130);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &IncomeStatementWidget::refresh);
-    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+    toolbar->addAction(QIcon(":/icons/export-csv.svg"),
         "Export CSV", this, &IncomeStatementWidget::exportCsv);
-    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+    toolbar->addAction(QIcon(":/icons/export-pdf.svg"),
         "Export PDF", this, [this]() {
             printReportToPdf(m_table, "Income Statement", this, "income_statement.pdf");
         });
@@ -170,9 +169,9 @@ void IncomeStatementWidget::refresh()
     // Update summary label
     QString status = netIncome >= 0 ? "Net Income" : "Net Loss";
     m_netIncomeLabel->setText(QString("%1: $%2").arg(status).arg(formatCents(qAbs(netIncome))));
-    m_netIncomeLabel->setStyleSheet(netIncome >= 0
-        ? "color: green; font-weight: bold;"
-        : "color: red; font-weight: bold;");
+    m_netIncomeLabel->setObjectName(netIncome >= 0 ? "statusSuccess" : "statusDanger");
+    m_netIncomeLabel->style()->unpolish(m_netIncomeLabel);
+    m_netIncomeLabel->style()->polish(m_netIncomeLabel);
 }
 
 void IncomeStatementWidget::exportCsv()

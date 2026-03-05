@@ -12,8 +12,8 @@ class IncomeStatementWidget;
 class BalanceSheetWidget;
 class JournalListWidget;
 class AuditLogWidget;
-class QTabWidget;
-class QDockWidget;
+class SidebarWidget;
+class QStackedWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -38,9 +38,9 @@ private:
 
     Database *m_database;
     QString m_passphrase;
+    SidebarWidget *m_sidebar;
+    QStackedWidget *m_stack;
     AccountsWidget *m_accountsWidget;
-    QDockWidget *m_accountsDock;
-    QTabWidget *m_reportTabs;
     DashboardWidget *m_dashboardWidget;
     TrialBalanceWidget *m_trialBalanceWidget;
     GeneralLedgerWidget *m_generalLedgerWidget;

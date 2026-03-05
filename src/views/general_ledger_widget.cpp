@@ -9,8 +9,7 @@
 #include <QHeaderView>
 #include <QToolBar>
 #include <QLabel>
-#include <QApplication>
-#include <QStyle>
+#include <QIcon>
 #include <QDateEdit>
 #include <QCheckBox>
 #include <QMenu>
@@ -62,15 +61,14 @@ GeneralLedgerWidget::GeneralLedgerWidget(Database *db, QWidget *parent)
     connect(m_fromDate, &QDateEdit::dateChanged, this, &GeneralLedgerWidget::onDateFilterChanged);
     connect(m_toDate, &QDateEdit::dateChanged, this, &GeneralLedgerWidget::onDateFilterChanged);
 
-    auto *style = QApplication::style();
     auto *toolbar = new QToolBar(this);
     toolbar->addWidget(new QLabel(" Account: ", this));
     toolbar->addWidget(m_accountCombo);
-    toolbar->addAction(style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh", this, &GeneralLedgerWidget::refresh);
-    toolbar->addAction(style->standardIcon(QStyle::SP_DialogSaveButton),
+    toolbar->addAction(QIcon(":/icons/export-csv.svg"),
         "Export CSV", this, &GeneralLedgerWidget::exportCsv);
-    toolbar->addAction(style->standardIcon(QStyle::SP_FileDialogDetailedView),
+    toolbar->addAction(QIcon(":/icons/export-pdf.svg"),
         "Export PDF", this, [this]() {
             printReportToPdf(m_table, "General Ledger", this, "general_ledger.pdf");
         });

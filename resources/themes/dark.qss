@@ -1,0 +1,338 @@
+/* === MoneyMan Dark Theme === */
+
+/* --- Global --- */
+QWidget {
+    background-color: #1A1A2E;
+    color: #E5E7EB;
+    font-size: 13px;
+}
+
+QMainWindow {
+    background-color: #1A1A2E;
+}
+
+/* --- Menu Bar --- */
+QMenuBar {
+    background-color: #1A1A2E;
+    color: #E5E7EB;
+    border-bottom: 1px solid #2D2D4A;
+    padding: 2px 0;
+}
+
+QMenuBar::item {
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected {
+    background-color: #16213E;
+}
+
+QMenu {
+    background-color: #16213E;
+    color: #E5E7EB;
+    border: 1px solid #2D2D4A;
+    border-radius: 8px;
+    padding: 4px;
+}
+
+QMenu::item {
+    padding: 6px 24px;
+    border-radius: 4px;
+}
+
+QMenu::item:selected {
+    background-color: #2D2D4A;
+    color: #FB923C;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #2D2D4A;
+    margin: 4px 8px;
+}
+
+/* --- Tool Bar --- */
+QToolBar {
+    background-color: #1A1A2E;
+    border-bottom: 1px solid #2D2D4A;
+    spacing: 4px;
+    padding: 4px 8px;
+}
+
+QToolBar::separator {
+    width: 1px;
+    background-color: #2D2D4A;
+    margin: 4px 4px;
+}
+
+QToolButton {
+    background-color: transparent;
+    color: #9CA3AF;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+QToolButton:hover {
+    background-color: #16213E;
+    color: #E5E7EB;
+}
+
+QToolButton:pressed {
+    background-color: #2D2D4A;
+}
+
+/* --- Buttons --- */
+QPushButton {
+    background-color: #16213E;
+    color: #E5E7EB;
+    border: 1px solid #2D2D4A;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-weight: 500;
+}
+
+QPushButton:hover {
+    background-color: #2D2D4A;
+    border-color: #3D3D5C;
+}
+
+QPushButton:pressed {
+    background-color: #3D3D5C;
+}
+
+QPushButton#primaryButton {
+    background-color: #FB923C;
+    color: #1A1A2E;
+    border: none;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #F97316;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: #EA580C;
+}
+
+/* --- Input Fields --- */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateEdit {
+    background-color: #16213E;
+    color: #E5E7EB;
+    border: 1px solid #2D2D4A;
+    border-radius: 8px;
+    padding: 6px 10px;
+    selection-background-color: #FB923C;
+    selection-color: #1A1A2E;
+}
+
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+    border: 2px solid #FB923C;
+    padding: 5px 9px;
+}
+
+QComboBox::drop-down {
+    border: none;
+    padding-right: 8px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #16213E;
+    border: 1px solid #2D2D4A;
+    border-radius: 8px;
+    selection-background-color: #2D2D4A;
+    selection-color: #FB923C;
+}
+
+/* --- Tables --- */
+QTableWidget, QTableView {
+    background-color: #1A1A2E;
+    alternate-background-color: #16213E;
+    color: #E5E7EB;
+    border: 1px solid #2D2D4A;
+    border-radius: 8px;
+    gridline-color: transparent;
+    selection-background-color: #2D2D4A;
+    selection-color: #E5E7EB;
+}
+
+QTableWidget::item, QTableView::item {
+    padding: 4px 8px;
+    border-bottom: 1px solid #16213E;
+}
+
+QHeaderView::section {
+    background-color: #16213E;
+    color: #9CA3AF;
+    border: none;
+    border-bottom: 2px solid #2D2D4A;
+    padding: 8px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* --- Scrollbars --- */
+QScrollBar:vertical {
+    background: transparent;
+    width: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background: #2D2D4A;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #3D3D5C;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+    background: #2D2D4A;
+    border-radius: 4px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #3D3D5C;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* --- Status Bar --- */
+QStatusBar {
+    background-color: #16213E;
+    color: #9CA3AF;
+    border-top: 1px solid #2D2D4A;
+    font-size: 12px;
+    padding: 2px 8px;
+}
+
+/* --- Sidebar --- */
+QWidget#sidebar {
+    background-color: #0F0F23;
+    min-width: 200px;
+    max-width: 200px;
+}
+
+QWidget#sidebar QPushButton {
+    background-color: transparent;
+    color: #94A3B8;
+    border: none;
+    border-radius: 0;
+    text-align: left;
+    padding: 10px 16px 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QWidget#sidebar QPushButton:hover {
+    background-color: #1A1A2E;
+    color: #E2E8F0;
+}
+
+QWidget#sidebar QPushButton[active="true"] {
+    background-color: #1A1A2E;
+    color: #FFFFFF;
+    border-left: 3px solid #FB923C;
+    padding-left: 13px;
+}
+
+QWidget#sidebar QLabel#sidebarSeparator {
+    background-color: #1A1A2E;
+    max-height: 1px;
+    min-height: 1px;
+    margin: 8px 16px;
+}
+
+QWidget#sidebar QLabel#sidebarTitle {
+    color: #64748B;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 16px 16px 4px 16px;
+}
+
+/* --- Dialog Styling --- */
+QDialog {
+    background-color: #1A1A2E;
+}
+
+QDialogButtonBox QPushButton {
+    min-width: 80px;
+}
+
+/* --- Frames / Cards --- */
+QFrame#metricCard {
+    background-color: #16213E;
+    border: 1px solid #2D2D4A;
+    border-bottom: 2px solid #1A1A2E;
+    border-right: 2px solid #1A1A2E;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+QFrame#metricCardAccent {
+    background-color: #16213E;
+    border: 1px solid #2D2D4A;
+    border-left: 3px solid #FB923C;
+    border-bottom: 2px solid #1A1A2E;
+    border-right: 2px solid #1A1A2E;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+QLabel#metricTitle {
+    color: #9CA3AF;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QLabel#metricValue {
+    color: #E5E7EB;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QLabel#metricValueSuccess {
+    color: #4ADE80;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QLabel#metricValueDanger {
+    color: #F87171;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QLabel#sectionHeader {
+    color: #E5E7EB;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 0;
+}
+
+/* --- Status Labels --- */
+QLabel#statusSuccess {
+    color: #4ADE80;
+    font-weight: bold;
+}
+
+QLabel#statusDanger {
+    color: #F87171;
+    font-weight: bold;
+}
