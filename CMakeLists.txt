@@ -10,7 +10,7 @@ set(CMAKE_AUTOUIC ON)
 # Treat warnings as errors
 add_compile_options(-Wall -Wextra -Werror)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport Svg)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
 
@@ -76,13 +76,14 @@ target_link_libraries(moneyman_lib PUBLIC
     Qt6::Widgets
     Qt6::Sql
     Qt6::PrintSupport
+    Qt6::Svg
     ${SQLCIPHER_LIBRARIES}
 )
 
 target_compile_options(moneyman_lib PUBLIC ${SQLCIPHER_CFLAGS_OTHER})
 
 # === Main executable ===
-add_executable(moneyman src/main.cpp)
+add_executable(moneyman src/main.cpp resources/resources.qrc)
 target_link_libraries(moneyman PRIVATE moneyman_lib)
 
 # === Tests ===
