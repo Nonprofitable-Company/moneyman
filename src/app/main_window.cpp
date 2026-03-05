@@ -13,30 +13,34 @@
 #include "views/password_dialog.h"
 #include "views/import_csv_dialog.h"
 #include "views/help_browser_dialog.h"
+#include "views/sidebar_widget.h"
+#include "theme/theme_manager.h"
 #include "models/account_model.h"
 
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QToolBar>
-#include <QDockWidget>
-#include <QTabWidget>
+#include <QStackedWidget>
+#include <QHBoxLayout>
 #include <QMessageBox>
 #include <QApplication>
-#include <QStyle>
 #include <QFileDialog>
 #include <QFile>
 #include <QShortcut>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_database(new Database(this))
+    , m_sidebar(nullptr)
+    , m_stack(nullptr)
     , m_accountsWidget(nullptr)
-    , m_accountsDock(nullptr)
-    , m_reportTabs(nullptr)
+    , m_dashboardWidget(nullptr)
     , m_trialBalanceWidget(nullptr)
     , m_generalLedgerWidget(nullptr)
     , m_incomeStatementWidget(nullptr)
     , m_balanceSheetWidget(nullptr)
+    , m_journalListWidget(nullptr)
     , m_auditLogWidget(nullptr)
 {
     setupUi();
@@ -44,7 +48,6 @@ MainWindow::MainWindow(QWidget *parent)
     setupToolBar();
     setupStatusBar();
 
-    // Prompt for encryption passphrase
     PasswordDialog pwDialog(PasswordDialog::Unlock, this);
     if (pwDialog.exec() != QDialog::Accepted) {
         QMessageBox::warning(this, "No Passphrase",
@@ -63,19 +66,25 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    setWindowTitle("MoneyMan — The Nonprofitable Company");
+    setWindowTitle("MoneyMan \u2014 The Nonprofitable Company");
     resize(1200, 800);
 
-    // Chart of Accounts as a dock widget on the left
-    m_accountsWidget = new AccountsWidget(m_database, this);
-    m_accountsDock = new QDockWidget("Chart of Accounts", this);
-    m_accountsDock->setWidget(m_accountsWidget);
-    m_accountsDock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable
-                                | QDockWidget::DockWidgetClosable);
-    addDockWidget(Qt::LeftDockWidgetArea, m_accountsDock);
+    // Create sidebar
+    m_sidebar = new SidebarWidget(this);
+    m_sidebar->addSectionTitle("REPORTS");
+    m_sidebar->addItem(":/icons/dashboard.svg", "  Dashboard");
+    m_sidebar->addItem(":/icons/trial-balance.svg", "  Trial Balance");
+    m_sidebar->addItem(":/icons/general-ledger.svg", "  General Ledger");
+    m_sidebar->addItem(":/icons/income-statement.svg", "  Income Statement");
+    m_sidebar->addItem(":/icons/balance-sheet.svg", "  Balance Sheet");
+    m_sidebar->addItem(":/icons/journal-entries.svg", "  Journal Entries");
+    m_sidebar->addItem(":/icons/audit-log.svg", "  Audit Log");
+    m_sidebar->addSeparator();
+    m_sidebar->addSectionTitle("DATA");
+    m_sidebar->addItem(":/icons/accounts.svg", "  Chart of Accounts");
 
-    // Reports as tabbed central widget
-    m_reportTabs = new QTabWidget(this);
+    // Create stacked widget with all pages
+    m_stack = new QStackedWidget(this);
     m_dashboardWidget = new DashboardWidget(m_database, this);
     m_trialBalanceWidget = new TrialBalanceWidget(m_database, this);
     m_generalLedgerWidget = new GeneralLedgerWidget(m_database, this);
@@ -83,22 +92,33 @@ void MainWindow::setupUi()
     m_balanceSheetWidget = new BalanceSheetWidget(m_database, this);
     m_journalListWidget = new JournalListWidget(m_database, this);
     m_auditLogWidget = new AuditLogWidget(m_database, this);
+    m_accountsWidget = new AccountsWidget(m_database, this);
 
-    m_reportTabs->addTab(m_dashboardWidget, "Dashboard");
-    m_reportTabs->addTab(m_trialBalanceWidget, "Trial Balance");
-    m_reportTabs->addTab(m_generalLedgerWidget, "General Ledger");
-    m_reportTabs->addTab(m_incomeStatementWidget, "Income Statement");
-    m_reportTabs->addTab(m_balanceSheetWidget, "Balance Sheet");
-    m_reportTabs->addTab(m_journalListWidget, "Journal Entries");
-    m_reportTabs->addTab(m_auditLogWidget, "Audit Log");
+    m_stack->addWidget(m_dashboardWidget);      // 0
+    m_stack->addWidget(m_trialBalanceWidget);    // 1
+    m_stack->addWidget(m_generalLedgerWidget);   // 2
+    m_stack->addWidget(m_incomeStatementWidget); // 3
+    m_stack->addWidget(m_balanceSheetWidget);    // 4
+    m_stack->addWidget(m_journalListWidget);     // 5
+    m_stack->addWidget(m_auditLogWidget);        // 6
+    m_stack->addWidget(m_accountsWidget);        // 7
 
-    setCentralWidget(m_reportTabs);
+    connect(m_sidebar, &SidebarWidget::currentChanged,
+            m_stack, &QStackedWidget::setCurrentIndex);
+    m_sidebar->setCurrentIndex(0);
+
+    // Central widget: sidebar + stack in horizontal layout
+    auto *central = new QWidget(this);
+    auto *hbox = new QHBoxLayout(central);
+    hbox->setContentsMargins(0, 0, 0, 0);
+    hbox->setSpacing(0);
+    hbox->addWidget(m_sidebar);
+    hbox->addWidget(m_stack, 1);
+    setCentralWidget(central);
 }
 
 void MainWindow::setupMenuBar()
 {
-    auto *style = QApplication::style();
-
     auto *fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction("&Backup Database...", this, &MainWindow::onBackup);
     fileMenu->addAction("&Restore Database...", this, &MainWindow::onRestore);
@@ -122,58 +142,21 @@ void MainWindow::setupMenuBar()
         }
     });
     fileMenu->addSeparator();
-    auto *quitAction = fileMenu->addAction(
-        style->standardIcon(QStyle::SP_DialogCloseButton),
-        "&Quit", QKeySequence::Quit, this, &QWidget::close);
-    Q_UNUSED(quitAction)
+    fileMenu->addAction("&Quit", QKeySequence::Quit, this, &QWidget::close);
 
     auto *txnMenu = menuBar()->addMenu("&Transactions");
-    txnMenu->addAction(
-        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+    txnMenu->addAction(QIcon(":/icons/add.svg"),
         "&New Journal Entry...", QKeySequence(Qt::CTRL | Qt::Key_J),
         this, &MainWindow::onNewJournalEntry);
 
     auto *reportsMenu = menuBar()->addMenu("&Reports");
-    reportsMenu->addAction(
-        style->standardIcon(QStyle::SP_BrowserReload),
+    reportsMenu->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh &All Reports", QKeySequence(Qt::CTRL | Qt::Key_R),
         this, &MainWindow::refreshAllReports);
 
-    // Window menu for toggling dock visibility
+    // Window menu with theme selection
     auto *windowMenu = menuBar()->addMenu("&Window");
-    windowMenu->addAction(m_accountsDock->toggleViewAction());
-    auto *darkAction = windowMenu->addAction("&Dark Mode");
-    darkAction->setCheckable(true);
-    connect(darkAction, &QAction::toggled, this, [](bool dark) {
-        if (dark) {
-            qApp->setStyleSheet(
-                "QWidget { background-color: #2b2b2b; color: #e0e0e0; }"
-                "QTableWidget, QTableView, QTreeView { background-color: #1e1e1e; "
-                "  alternate-background-color: #2d2d2d; gridline-color: #444; }"
-                "QHeaderView::section { background-color: #3c3c3c; color: #e0e0e0; "
-                "  border: 1px solid #555; padding: 4px; }"
-                "QMenuBar { background-color: #333; color: #e0e0e0; }"
-                "QMenuBar::item:selected { background-color: #505050; }"
-                "QMenu { background-color: #2b2b2b; color: #e0e0e0; border: 1px solid #555; }"
-                "QMenu::item:selected { background-color: #505050; }"
-                "QToolBar { background-color: #333; border: none; }"
-                "QPushButton { background-color: #3c3c3c; color: #e0e0e0; "
-                "  border: 1px solid #555; padding: 4px 12px; border-radius: 3px; }"
-                "QPushButton:hover { background-color: #505050; }"
-                "QLineEdit, QSpinBox, QComboBox, QDateEdit { background-color: #1e1e1e; "
-                "  color: #e0e0e0; border: 1px solid #555; padding: 2px; }"
-                "QDockWidget::title { background-color: #333; color: #e0e0e0; padding: 4px; }"
-                "QTabWidget::pane { border: 1px solid #555; }"
-                "QTabBar::tab { background-color: #3c3c3c; color: #e0e0e0; padding: 6px 12px; "
-                "  border: 1px solid #555; }"
-                "QTabBar::tab:selected { background-color: #2b2b2b; border-bottom-color: #2b2b2b; }"
-                "QStatusBar { background-color: #333; color: #e0e0e0; }"
-                "QFrame { border-color: #555; }"
-            );
-        } else {
-            qApp->setStyleSheet("");
-        }
-    });
+    ThemeManager::instance()->populateMenu(windowMenu);
 
     auto *helpMenu = menuBar()->addMenu("&Help");
     helpMenu->addAction("&User Guide", QKeySequence::HelpContents, this, [this]() {
@@ -191,34 +174,32 @@ void MainWindow::setupMenuBar()
             "<p>Built with Qt6 and SQLCipher.</p>");
     });
 
-    // Tab navigation shortcuts (Ctrl+1 through Ctrl+8)
-    for (int i = 0; i < m_reportTabs->count() && i < 9; ++i) {
-        auto *shortcut = new QShortcut(QKeySequence(Qt::CTRL | static_cast<Qt::Key>(Qt::Key_1 + i)), this);
+    // Navigation shortcuts (Ctrl+1 through Ctrl+8)
+    for (int i = 0; i < m_stack->count() && i < 9; ++i) {
+        auto *shortcut = new QShortcut(
+            QKeySequence(Qt::CTRL | static_cast<Qt::Key>(Qt::Key_1 + i)), this);
         connect(shortcut, &QShortcut::activated, this, [this, i]() {
-            m_reportTabs->setCurrentIndex(i);
+            m_sidebar->setCurrentIndex(i);
         });
     }
 }
 
 void MainWindow::setupToolBar()
 {
-    auto *style = QApplication::style();
     auto *toolbar = addToolBar("Main");
     toolbar->setMovable(false);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
-    toolbar->addAction(
-        style->standardIcon(QStyle::SP_FileDialogNewFolder),
+    toolbar->addAction(QIcon(":/icons/add.svg"),
         "New Journal Entry", this, &MainWindow::onNewJournalEntry);
     toolbar->addSeparator();
-    toolbar->addAction(
-        style->standardIcon(QStyle::SP_BrowserReload),
+    toolbar->addAction(QIcon(":/icons/refresh.svg"),
         "Refresh Reports", this, &MainWindow::refreshAllReports);
 }
 
 void MainWindow::setupStatusBar()
 {
-    statusBar()->showMessage("Ready — " + m_database->databasePath());
+    statusBar()->showMessage("Ready \u2014 " + m_database->databasePath());
 }
 
 void MainWindow::onNewJournalEntry()
@@ -237,14 +218,14 @@ void MainWindow::onBackup()
         "moneyman_backup.db", "SQLite Database (*.db)");
     if (dest.isEmpty()) return;
 
-    // Close DB, copy file, reopen
     QString srcPath = m_database->databasePath();
     m_database->close();
 
     bool ok = QFile::copy(srcPath, dest);
 
     if (!m_database->open(srcPath, m_passphrase)) {
-        QMessageBox::critical(this, "Error", "Failed to reopen database after backup.");
+        QMessageBox::critical(this, "Error",
+            "Failed to reopen database after backup.");
         return;
     }
 
@@ -272,7 +253,6 @@ void MainWindow::onRestore()
     QString destPath = m_database->databasePath();
     m_database->close();
 
-    // Remove current and copy backup over
     QFile::remove(destPath);
     bool ok = QFile::copy(src, destPath);
 
