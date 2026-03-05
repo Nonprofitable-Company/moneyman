@@ -14,5 +14,7 @@
     <file>icons/export-csv.svg</file>
     <file>icons/export-pdf.svg</file>
     <file>icons/backup.svg</file>
+    <file>themes/light.qss</file>
+    <file>themes/dark.qss</file>
   </qresource>
 </RCC>
