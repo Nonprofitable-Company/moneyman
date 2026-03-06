@@ -60,6 +60,8 @@ add_library(moneyman_lib STATIC
     src/views/import_csv_dialog.h
     src/views/help_browser_dialog.cpp
     src/views/help_browser_dialog.h
+    src/views/tax_summary_widget.cpp
+    src/views/tax_summary_widget.h
     src/utils/csv_import.cpp
     src/utils/csv_import.h
     src/utils/print_report.cpp

@@ -10,6 +10,7 @@ class TrialBalanceWidget;
 class GeneralLedgerWidget;
 class IncomeStatementWidget;
 class BalanceSheetWidget;
+class TaxSummaryWidget;
 class JournalListWidget;
 class AuditLogWidget;
 class SidebarWidget;
@@ -48,6 +49,7 @@ private:
     GeneralLedgerWidget *m_generalLedgerWidget;
     IncomeStatementWidget *m_incomeStatementWidget;
     BalanceSheetWidget *m_balanceSheetWidget;
+    TaxSummaryWidget *m_taxSummaryWidget;
     JournalListWidget *m_journalListWidget;
     AuditLogWidget *m_auditLogWidget;
 };
