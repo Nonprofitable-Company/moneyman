@@ -1,5 +1,7 @@
 #include "account_combo_delegate.h"
 #include <QComboBox>
+#include <QAbstractItemView>
+#include <QFontMetrics>
 
 AccountComboDelegate::AccountComboDelegate(Database *db, QObject *parent)
     : QStyledItemDelegate(parent)
@@ -17,6 +19,16 @@ QWidget* AccountComboDelegate::createEditor(QWidget *parent,
         QString label = QString("%1 — %2").arg(acct.code).arg(acct.name);
         combo->addItem(label, static_cast<qlonglong>(acct.id));
     }
+
+    // Size popup to fit the longest account name
+    int maxWidth = 0;
+    QFontMetrics fm(combo->font());
+    for (int i = 0; i < combo->count(); ++i) {
+        int w = fm.horizontalAdvance(combo->itemText(i));
+        if (w > maxWidth) maxWidth = w;
+    }
+    combo->view()->setMinimumWidth(maxWidth + 30);
+
     return combo;
 }
 
