@@ -61,7 +61,9 @@ void AttachmentsDialog::refreshList()
 void AttachmentsDialog::onAdd()
 {
     QString path = QFileDialog::getOpenFileName(this, "Attach File", QString(),
-        "Supported Files (*.png *.jpg *.jpeg *.pdf);;All Files (*)");
+        "Documents (*.pdf *.csv *.xlsx *.xls *.docx *.doc *.txt);;"
+        "Images (*.png *.jpg *.jpeg *.gif *.bmp *.tiff *.tif *.webp *.svg *.heic *.heif *.avif);;"
+        "All Files (*)");
     if (path.isEmpty()) return;
 
     QFile file(path);
