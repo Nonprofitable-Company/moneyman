@@ -16,12 +16,12 @@ endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport Svg)
 
-# SQLCipher: bundled on Windows, system package on Unix
+# SQLCipher: vcpkg on Windows, system package on Unix
 if(WIN32)
-    set(SQLCIPHER_ROOT "${CMAKE_SOURCE_DIR}/deps/sqlcipher/win64")
-    set(SQLCIPHER_INCLUDE_DIRS "${SQLCIPHER_ROOT}/include")
-    set(SQLCIPHER_LIBRARIES "${SQLCIPHER_ROOT}/lib/sqlcipher.lib")
-    set(SQLCIPHER_DLL "${SQLCIPHER_ROOT}/bin/sqlcipher.dll")
+    find_package(unofficial-sqlcipher CONFIG REQUIRED)
+    # Alias vcpkg target into variables used by the rest of this file
+    get_target_property(SQLCIPHER_INCLUDE_DIRS unofficial::sqlcipher::sqlcipher INTERFACE_INCLUDE_DIRECTORIES)
+    set(SQLCIPHER_LIBRARIES unofficial::sqlcipher::sqlcipher)
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
@@ -111,12 +111,6 @@ endif()
 add_executable(moneyman src/main.cpp resources/resources.qrc)
 target_link_libraries(moneyman PRIVATE moneyman_lib)
 
-# Copy SQLCipher DLL next to executable on Windows
-if(WIN32 AND SQLCIPHER_DLL)
-    add_custom_command(TARGET moneyman POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${SQLCIPHER_DLL}" "$<TARGET_FILE_DIR:moneyman>")
-endif()
 
 # === Tests ===
 enable_testing()

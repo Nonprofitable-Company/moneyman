@@ -46,8 +46,12 @@ jobs:
           brew install sqlcipher catch2
           echo "PKG_CONFIG_PATH=$(brew --prefix sqlcipher)/lib/pkgconfig" >> "$GITHUB_ENV"
 
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install sqlcipher:x64-windows
+
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ runner.os == 'Windows' && '-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake' || '' }}
 
       - name: Build
         run: cmake --build build --config Release
@@ -79,10 +83,8 @@ jobs:
           Copy-Item build\Release\moneyman.exe staging\
           # Bundle Qt DLLs
           & windeployqt staging\moneyman.exe
-          # Bundle SQLCipher DLL if present
-          if (Test-Path deps\sqlcipher\win64\bin\sqlcipher.dll) {
-            Copy-Item deps\sqlcipher\win64\bin\sqlcipher.dll staging\
-          }
+          # Bundle any vcpkg runtime DLLs from build output
+          Get-ChildItem build\Release\*.dll -ErrorAction SilentlyContinue | Copy-Item -Destination staging\
           Compress-Archive -Path staging\* -DestinationPath moneyman-windows.zip
 
       - name: Upload artifact

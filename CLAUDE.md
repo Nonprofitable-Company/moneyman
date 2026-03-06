@@ -136,16 +136,11 @@ cd build && ctest --output-on-failure
 
 ## Windows / Cross-Platform
 
-### SQLCipher on Windows
+### SQLCipher
 
-Pre-built SQLCipher binaries are vendored in `deps/sqlcipher/win64/`:
-- `include/sqlcipher/sqlite3.h` — header
-- `lib/sqlcipher.lib` — MSVC import library
-- `bin/sqlcipher.dll` — runtime DLL (auto-copied next to exe at build time)
-
-To update: replace files in `deps/sqlcipher/win64/` and commit.
-
-On Linux/macOS, SQLCipher is resolved via PkgConfig (system packages).
+- **Linux:** `sudo apt-get install libsqlcipher-dev` (PkgConfig)
+- **macOS:** `brew install sqlcipher` (PkgConfig)
+- **Windows:** `vcpkg install sqlcipher:x64-windows` (CMake `find_package`)
 
 ### Releases
 
