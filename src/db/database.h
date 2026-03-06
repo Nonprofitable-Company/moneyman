@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QByteArray>
 #include <QSqlDatabase>
 #include <cstdint>
 #include <vector>
@@ -22,6 +23,23 @@ struct JournalLineRow {
     int64_t accountId = 0;
     int64_t debitCents = 0;
     int64_t creditCents = 0;
+};
+
+struct AttachmentMeta {
+    int64_t id = 0;
+    int64_t entryId = 0;
+    QString filename;
+    QString mimeType;
+    QString createdAt;
+};
+
+struct AttachmentRow {
+    int64_t id = 0;
+    int64_t entryId = 0;
+    QString filename;
+    QString mimeType;
+    QByteArray data;
+    QString createdAt;
 };
 
 struct JournalEntryRow {
@@ -55,9 +73,9 @@ public:
     AccountRow accountById(int64_t id) const;
     AccountRow accountByCode(int code) const;
 
-    // Journal entries
-    bool postJournalEntry(const QString &date, const QString &description,
-                          const std::vector<JournalLineRow> &lines);
+    // Journal entries (returns entry ID on success, -1 on failure)
+    int64_t postJournalEntry(const QString &date, const QString &description,
+                             const std::vector<JournalLineRow> &lines);
     std::vector<JournalEntryRow> allJournalEntries() const;
     JournalEntryRow journalEntryById(int64_t id) const;
     bool voidJournalEntry(int64_t entryId);
@@ -107,6 +125,13 @@ public:
     std::vector<TemplateRow> allTemplates() const;
     TemplateRow templateById(int64_t id) const;
     bool deleteTemplate(int64_t id);
+
+    // Attachments
+    int64_t addAttachment(int64_t entryId, const QString &filename,
+                          const QString &mimeType, const QByteArray &data);
+    std::vector<AttachmentMeta> attachmentsForEntry(int64_t entryId) const;
+    AttachmentRow attachmentById(int64_t id) const;
+    bool deleteAttachment(int64_t id);
 
     // Audit log
     struct AuditLogEntry {

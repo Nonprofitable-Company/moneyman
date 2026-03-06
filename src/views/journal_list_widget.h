@@ -6,6 +6,7 @@
 class Database;
 class QTableWidget;
 class QLineEdit;
+class AttachmentsDialog;
 
 class JournalListWidget : public QWidget
 {

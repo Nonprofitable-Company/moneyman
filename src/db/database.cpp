@@ -206,6 +206,22 @@ bool Database::createSchema()
         return false;
     }
 
+    const QString attachmentsTable = R"(
+        CREATE TABLE IF NOT EXISTS attachments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entry_id INTEGER NOT NULL REFERENCES journal_entries(id),
+            filename TEXT NOT NULL,
+            mime_type TEXT NOT NULL,
+            data BLOB NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    )";
+
+    if (!query.exec(attachmentsTable)) {
+        m_lastError = "Failed to create attachments table: " + query.lastError().text();
+        return false;
+    }
+
     const QString auditLogTable = R"(
         CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -358,18 +374,18 @@ AccountRow Database::accountByCode(int code) const
     return row;
 }
 
-bool Database::postJournalEntry(const QString &date, const QString &description,
-                                 const std::vector<JournalLineRow> &lines)
+int64_t Database::postJournalEntry(const QString &date, const QString &description,
+                                    const std::vector<JournalLineRow> &lines)
 {
     if (lines.size() < 2) {
         m_lastError = "Journal entry must have at least 2 lines";
-        return false;
+        return -1;
     }
 
     // Check closed period
     if (isDateInClosedPeriod(date)) {
         m_lastError = "Cannot post to a closed fiscal period";
-        return false;
+        return -1;
     }
 
     // Verify debits == credits
@@ -382,12 +398,12 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
 
     if (totalDebits != totalCredits) {
         m_lastError = "Debits must equal credits";
-        return false;
+        return -1;
     }
 
     if (totalDebits == 0) {
         m_lastError = "Entry must have non-zero amounts";
-        return false;
+        return -1;
     }
 
     // Begin transaction
@@ -401,7 +417,7 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
     if (!entryQuery.exec()) {
         m_lastError = entryQuery.lastError().text();
         m_db.rollback();
-        return false;
+        return -1;
     }
 
     int64_t entryId = entryQuery.lastInsertId().toLongLong();
@@ -417,7 +433,7 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
         if (!lineQuery.exec()) {
             m_lastError = lineQuery.lastError().text();
             m_db.rollback();
-            return false;
+            return -1;
         }
 
         // Update account balance
@@ -439,14 +455,14 @@ bool Database::postJournalEntry(const QString &date, const QString &description,
         if (!balQuery.exec()) {
             m_lastError = balQuery.lastError().text();
             m_db.rollback();
-            return false;
+            return -1;
         }
     }
 
     m_db.commit();
     logAudit("POST_JOURNAL_ENTRY", QString("Posted entry #%1: %2 (%3)")
         .arg(entryId).arg(description, date));
-    return true;
+    return entryId;
 }
 
 std::vector<JournalEntryRow> Database::allJournalEntries() const
@@ -990,4 +1006,85 @@ std::vector<Database::AuditLogEntry> Database::allAuditLog() const
         result.push_back(entry);
     }
     return result;
+}
+
+int64_t Database::addAttachment(int64_t entryId, const QString &filename,
+                                 const QString &mimeType, const QByteArray &data)
+{
+    QSqlQuery query(m_db);
+    query.prepare("INSERT INTO attachments (entry_id, filename, mime_type, data) VALUES (?, ?, ?, ?)");
+    query.addBindValue(static_cast<qlonglong>(entryId));
+    query.addBindValue(filename);
+    query.addBindValue(mimeType);
+    query.addBindValue(data);
+
+    if (!query.exec()) {
+        m_lastError = query.lastError().text();
+        return -1;
+    }
+
+    int64_t id = query.lastInsertId().toLongLong();
+    logAudit("ADD_ATTACHMENT", QString("Added attachment '%1' to entry #%2").arg(filename).arg(entryId));
+    return id;
+}
+
+std::vector<AttachmentMeta> Database::attachmentsForEntry(int64_t entryId) const
+{
+    std::vector<AttachmentMeta> result;
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id, entry_id, filename, mime_type, created_at FROM attachments WHERE entry_id = ? ORDER BY id");
+    query.addBindValue(static_cast<qlonglong>(entryId));
+    query.exec();
+
+    while (query.next()) {
+        AttachmentMeta meta;
+        meta.id = query.value(0).toLongLong();
+        meta.entryId = query.value(1).toLongLong();
+        meta.filename = query.value(2).toString();
+        meta.mimeType = query.value(3).toString();
+        meta.createdAt = query.value(4).toString();
+        result.push_back(meta);
+    }
+    return result;
+}
+
+AttachmentRow Database::attachmentById(int64_t id) const
+{
+    AttachmentRow row;
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id, entry_id, filename, mime_type, data, created_at FROM attachments WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+    query.exec();
+
+    if (query.next()) {
+        row.id = query.value(0).toLongLong();
+        row.entryId = query.value(1).toLongLong();
+        row.filename = query.value(2).toString();
+        row.mimeType = query.value(3).toString();
+        row.data = query.value(4).toByteArray();
+        row.createdAt = query.value(5).toString();
+    }
+    return row;
+}
+
+bool Database::deleteAttachment(int64_t id)
+{
+    AttachmentRow existing = attachmentById(id);
+    if (existing.id == 0) {
+        m_lastError = "Attachment not found";
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare("DELETE FROM attachments WHERE id = ?");
+    query.addBindValue(static_cast<qlonglong>(id));
+
+    if (!query.exec()) {
+        m_lastError = query.lastError().text();
+        return false;
+    }
+
+    logAudit("DELETE_ATTACHMENT", QString("Deleted attachment '%1' (id=%2) from entry #%3")
+        .arg(existing.filename).arg(id).arg(existing.entryId));
+    return true;
 }

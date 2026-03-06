@@ -2,14 +2,24 @@
 #define JOURNAL_ENTRY_DIALOG_H
 
 #include <QDialog>
+#include <QByteArray>
+#include <QString>
+#include <vector>
 
 class QDateEdit;
 class QLineEdit;
 class QTableView;
 class QLabel;
 class QPushButton;
+class QListWidget;
 class Database;
 class JournalLineModel;
+
+struct PendingAttachment {
+    QString filename;
+    QString mimeType;
+    QByteArray data;
+};
 
 class JournalEntryDialog : public QDialog
 {
@@ -25,6 +35,8 @@ private slots:
     void onPost();
     void onSaveTemplate();
     void onLoadTemplate();
+    void onAddAttachment();
+    void onRemoveAttachment();
 
 private:
     Database *m_db;
@@ -37,6 +49,9 @@ private:
     QLabel *m_creditTotalLabel;
     QLabel *m_balanceStatusLabel;
     QPushButton *m_postButton;
+
+    QListWidget *m_attachmentList;
+    std::vector<PendingAttachment> m_pendingAttachments;
 };
 
 #endif // JOURNAL_ENTRY_DIALOG_H
