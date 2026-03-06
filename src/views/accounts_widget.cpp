@@ -37,6 +37,7 @@ AccountsWidget::AccountsWidget(Database *db, QWidget *parent)
     m_tableView->setColumnWidth(AccountModel::ColCode, 70);
     m_tableView->setColumnWidth(AccountModel::ColType, 90);
     m_tableView->setColumnWidth(AccountModel::ColCurrency, 50);
+    m_tableView->setColumnWidth(AccountModel::ColTaxCategory, 130);
     m_tableView->setColumnWidth(AccountModel::ColBalance, 100);
     m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_tableView, &QTableView::customContextMenuRequested,
@@ -107,7 +108,7 @@ void AccountsWidget::onEditAccount()
     if (!acct) return;
 
     AddAccountDialog dialog(this);
-    dialog.setEditMode(acct->code, acct->name, acct->type);
+    dialog.setEditMode(acct->code, acct->name, acct->type, acct->taxCategory);
 
     if (dialog.exec() != QDialog::Accepted) return;
 
@@ -117,7 +118,7 @@ void AccountsWidget::onEditAccount()
         return;
     }
 
-    if (!m_db->updateAccount(acct->id, name, dialog.accountType())) {
+    if (!m_db->updateAccount(acct->id, name, dialog.accountType(), dialog.taxCategory())) {
         QMessageBox::warning(this, "Error",
             "Failed to update account: " + m_db->lastError());
         return;
@@ -138,7 +139,8 @@ void AccountsWidget::onAddAccount()
         return;
     }
 
-    if (!m_db->createAccount(dialog.accountCode(), name, dialog.accountType(), dialog.accountCurrency())) {
+    if (!m_db->createAccount(dialog.accountCode(), name, dialog.accountType(),
+                             dialog.accountCurrency(), dialog.taxCategory())) {
         QMessageBox::warning(this, "Error",
             "Failed to create account: " + m_db->lastError());
         return;

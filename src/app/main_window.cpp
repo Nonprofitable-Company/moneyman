@@ -7,6 +7,7 @@
 #include "views/general_ledger_widget.h"
 #include "views/income_statement_widget.h"
 #include "views/balance_sheet_widget.h"
+#include "views/tax_summary_widget.h"
 #include "views/journal_list_widget.h"
 #include "views/audit_log_widget.h"
 #include "views/close_period_dialog.h"
@@ -40,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_generalLedgerWidget(nullptr)
     , m_incomeStatementWidget(nullptr)
     , m_balanceSheetWidget(nullptr)
+    , m_taxSummaryWidget(nullptr)
     , m_journalListWidget(nullptr)
     , m_auditLogWidget(nullptr)
 {
@@ -85,6 +87,7 @@ void MainWindow::setupUi()
     m_sidebar->addItem(":/icons/general-ledger.svg", "  General Ledger");
     m_sidebar->addItem(":/icons/income-statement.svg", "  Income Statement");
     m_sidebar->addItem(":/icons/balance-sheet.svg", "  Balance Sheet");
+    m_sidebar->addItem(":/icons/income-statement.svg", "  Tax Summary");
     m_sidebar->addItem(":/icons/journal-entries.svg", "  Journal Entries");
     m_sidebar->addItem(":/icons/audit-log.svg", "  Audit Log");
     m_sidebar->addSeparator();
@@ -98,6 +101,7 @@ void MainWindow::setupUi()
     m_generalLedgerWidget = new GeneralLedgerWidget(m_database, this);
     m_incomeStatementWidget = new IncomeStatementWidget(m_database, this);
     m_balanceSheetWidget = new BalanceSheetWidget(m_database, this);
+    m_taxSummaryWidget = new TaxSummaryWidget(m_database, this);
     m_journalListWidget = new JournalListWidget(m_database, this);
     m_auditLogWidget = new AuditLogWidget(m_database, this);
     m_accountsWidget = new AccountsWidget(m_database, this);
@@ -107,9 +111,10 @@ void MainWindow::setupUi()
     m_stack->addWidget(m_generalLedgerWidget);   // 2
     m_stack->addWidget(m_incomeStatementWidget); // 3
     m_stack->addWidget(m_balanceSheetWidget);    // 4
-    m_stack->addWidget(m_journalListWidget);     // 5
-    m_stack->addWidget(m_auditLogWidget);        // 6
-    m_stack->addWidget(m_accountsWidget);        // 7
+    m_stack->addWidget(m_taxSummaryWidget);      // 5
+    m_stack->addWidget(m_journalListWidget);     // 6
+    m_stack->addWidget(m_auditLogWidget);        // 7
+    m_stack->addWidget(m_accountsWidget);        // 8
 
     connect(m_sidebar, &SidebarWidget::currentChanged,
             m_stack, &QStackedWidget::setCurrentIndex);
@@ -305,6 +310,7 @@ void MainWindow::refreshAllReports()
     m_generalLedgerWidget->refresh();
     m_incomeStatementWidget->refresh();
     m_balanceSheetWidget->refresh();
+    m_taxSummaryWidget->refresh();
     m_journalListWidget->refresh();
     m_auditLogWidget->refresh();
 }

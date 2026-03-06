@@ -22,6 +22,8 @@ add_library(moneyman_lib STATIC
     src/accounting/account.h
     src/accounting/journal_entry.cpp
     src/accounting/journal_entry.h
+    src/accounting/tax_categories.cpp
+    src/accounting/tax_categories.h
     src/models/account_model.cpp
     src/models/account_model.h
     src/models/journal_line_model.cpp
@@ -58,6 +60,8 @@ add_library(moneyman_lib STATIC
     src/views/import_csv_dialog.h
     src/views/help_browser_dialog.cpp
     src/views/help_browser_dialog.h
+    src/views/tax_summary_widget.cpp
+    src/views/tax_summary_widget.h
     src/utils/csv_import.cpp
     src/utils/csv_import.h
     src/utils/print_report.cpp
@@ -99,6 +103,7 @@ find_package(Catch2 3 REQUIRED)
 add_executable(test_accounting
     tests/test_accounting/test_account.cpp
     tests/test_accounting/test_journal_entry.cpp
+    tests/test_accounting/test_tax_categories.cpp
 )
 target_link_libraries(test_accounting PRIVATE moneyman_lib Catch2::Catch2WithMain)
 add_test(NAME test_accounting COMMAND test_accounting)
