@@ -9,7 +9,8 @@ Double-entry bookkeeping desktop application for The Nonprofitable Company.
 - **Database:** SQLite with SQLCipher for encryption-at-rest
 - **Build:** CMake
 - **Testing:** Qt Test + Catch2
-- **Platforms:** Linux, macOS
+- **Platforms:** Linux, macOS, Windows
+- **CI/CD:** GitHub Actions (build, test, release for all platforms)
 
 ## Architecture
 
@@ -126,3 +127,26 @@ cd build && ctest --output-on-failure
 - Commit after each meaningful change
 - Never commit code that doesn't compile
 - Commit message format: `type: description` (feat, fix, refactor, test, docs)
+
+### Branching & Worktrees
+
+- Every new feature or GitHub issue gets its own branch and worktree
+- Use `.worktrees/` directory for git worktrees (project-local, gitignored)
+- Each branch maps to a PR — one branch per issue/feature
+
+## Windows / Cross-Platform
+
+### SQLCipher
+
+- **Linux:** `sudo apt-get install libsqlcipher-dev` (PkgConfig)
+- **macOS:** `brew install sqlcipher` (PkgConfig)
+- **Windows:** `vcpkg install sqlcipher:x64-windows` (CMake `find_package`)
+
+### Releases
+
+Versioning: `MoneyMan 2`, `MoneyMan 3`, etc. Git tags: `v2`, `v3`, etc.
+
+Push a tag to create a GitHub Release with artifacts for all platforms:
+```bash
+git tag v2 && git push origin v2
+```

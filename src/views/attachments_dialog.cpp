@@ -72,12 +72,12 @@ void AttachmentsDialog::onAdd()
         return;
     }
 
-    QByteArray data = file.readAll();
+    QByteArray fileData = file.readAll();
     QString filename = QFileInfo(path).fileName();
     QMimeDatabase mimeDb;
     QString mimeType = mimeDb.mimeTypeForFile(path).name();
 
-    if (m_db->addAttachment(m_entryId, filename, mimeType, data) < 0) {
+    if (m_db->addAttachment(m_entryId, filename, mimeType, fileData) < 0) {
         QMessageBox::warning(this, "Error",
             "Failed to add attachment: " + m_db->lastError());
         return;
