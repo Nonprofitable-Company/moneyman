@@ -8,11 +8,24 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Treat warnings as errors
-add_compile_options(-Wall -Wextra -Werror)
+if(MSVC)
+    add_compile_options(/W4 /WX)
+else()
+    add_compile_options(-Wall -Wextra -Werror)
+endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport Svg)
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
+
+# SQLCipher: bundled on Windows, system package on Unix
+if(WIN32)
+    set(SQLCIPHER_ROOT "${CMAKE_SOURCE_DIR}/deps/sqlcipher/win64")
+    set(SQLCIPHER_INCLUDE_DIRS "${SQLCIPHER_ROOT}/include")
+    set(SQLCIPHER_LIBRARIES "${SQLCIPHER_ROOT}/lib/sqlcipher.lib")
+    set(SQLCIPHER_DLL "${SQLCIPHER_ROOT}/bin/sqlcipher.dll")
+else()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
+endif()
 
 # === Source library (shared between app and tests) ===
 add_library(moneyman_lib STATIC
@@ -90,15 +103,32 @@ target_link_libraries(moneyman_lib PUBLIC
     ${SQLCIPHER_LIBRARIES}
 )
 
-target_compile_options(moneyman_lib PUBLIC ${SQLCIPHER_CFLAGS_OTHER})
+if(SQLCIPHER_CFLAGS_OTHER)
+    target_compile_options(moneyman_lib PUBLIC ${SQLCIPHER_CFLAGS_OTHER})
+endif()
 
 # === Main executable ===
 add_executable(moneyman src/main.cpp resources/resources.qrc)
 target_link_libraries(moneyman PRIVATE moneyman_lib)
 
+# Copy SQLCipher DLL next to executable on Windows
+if(WIN32 AND SQLCIPHER_DLL)
+    add_custom_command(TARGET moneyman POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${SQLCIPHER_DLL}" "$<TARGET_FILE_DIR:moneyman>")
+endif()
+
 # === Tests ===
 enable_testing()
-find_package(Catch2 3 REQUIRED)
+find_package(Catch2 3 QUIET)
+if(NOT Catch2_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.5.2
+    )
+    FetchContent_MakeAvailable(Catch2)
+endif()
 
 add_executable(test_accounting
     tests/test_accounting/test_account.cpp
