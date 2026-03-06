@@ -18,10 +18,9 @@ find_package(Qt6 REQUIRED COMPONENTS Core Widgets Sql PrintSupport Svg)
 
 # SQLCipher: vcpkg on Windows, system package on Unix
 if(WIN32)
-    find_package(unofficial-sqlcipher CONFIG REQUIRED)
-    # Alias vcpkg target into variables used by the rest of this file
-    get_target_property(SQLCIPHER_INCLUDE_DIRS unofficial::sqlcipher::sqlcipher INTERFACE_INCLUDE_DIRECTORIES)
-    set(SQLCIPHER_LIBRARIES unofficial::sqlcipher::sqlcipher)
+    find_package(sqlcipher CONFIG REQUIRED)
+    set(SQLCIPHER_INCLUDE_DIRS "")
+    set(SQLCIPHER_LIBRARIES sqlcipher::sqlcipher)
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SQLCIPHER REQUIRED sqlcipher)
