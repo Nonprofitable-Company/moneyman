@@ -690,6 +690,62 @@ TEST_CASE("Attachments CRUD", "[db][attachment]")
     }
 }
 
+TEST_CASE("Account tax_category CRUD", "[db][tax]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    Database db;
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
+
+    SECTION("create account with tax category") {
+        REQUIRE(db.createAccount(4000, "Sales Revenue", "revenue", "USD", "Gross Receipts"));
+        auto acct = db.accountByCode(4000);
+        REQUIRE(acct.taxCategory == "Gross Receipts");
+    }
+
+    SECTION("default tax category is empty") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        auto acct = db.accountByCode(1000);
+        REQUIRE(acct.taxCategory.isEmpty());
+    }
+
+    SECTION("update tax category") {
+        REQUIRE(db.createAccount(5000, "Rent Expense", "expense", "USD", "Other Expenses"));
+        auto acct = db.accountByCode(5000);
+        REQUIRE(db.updateAccount(acct.id, "Rent Expense", "expense", "Rent"));
+        auto updated = db.accountByCode(5000);
+        REQUIRE(updated.taxCategory == "Rent");
+    }
+
+    SECTION("tax category appears in allAccounts") {
+        REQUIRE(db.createAccount(5000, "Utilities", "expense", "USD", "Utilities"));
+        auto accounts = db.allAccounts();
+        REQUIRE(accounts.size() == 1);
+        REQUIRE(accounts[0].taxCategory == "Utilities");
+    }
+
+    SECTION("tax category appears in accountBalancesForPeriod") {
+        REQUIRE(db.createAccount(1000, "Cash", "asset"));
+        REQUIRE(db.createAccount(4000, "Sales", "revenue", "USD", "Gross Receipts"));
+        auto cash = db.accountByCode(1000);
+        auto sales = db.accountByCode(4000);
+
+        std::vector<JournalLineRow> lines = {
+            {0, 0, cash.id, 10000, 0},
+            {0, 0, sales.id, 0, 10000},
+        };
+        REQUIRE(db.postJournalEntry("2026-01-15", "Sale", lines));
+
+        auto balances = db.accountBalancesForPeriod("2026-01-01", "2026-12-31");
+        for (const auto &ab : balances) {
+            if (ab.code == 4000) {
+                REQUIRE(ab.taxCategory == "Gross Receipts");
+            }
+        }
+    }
+}
+
 TEST_CASE("CSV import parsing", "[csv]")
 {
     QTemporaryDir tmpDir;

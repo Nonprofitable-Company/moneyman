@@ -236,18 +236,22 @@ bool Database::createSchema()
         return false;
     }
 
+    // Add tax_category column for existing databases (ignore error if already exists)
+    query.exec("ALTER TABLE accounts ADD COLUMN tax_category TEXT DEFAULT ''");
+
     return true;
 }
 
 bool Database::createAccount(int code, const QString &name, const QString &type,
-                              const QString &currency)
+                              const QString &currency, const QString &taxCategory)
 {
     QSqlQuery query(m_db);
-    query.prepare("INSERT INTO accounts (code, name, type, currency) VALUES (?, ?, ?, ?)");
+    query.prepare("INSERT INTO accounts (code, name, type, currency, tax_category) VALUES (?, ?, ?, ?, ?)");
     query.addBindValue(code);
     query.addBindValue(name);
     query.addBindValue(type);
     query.addBindValue(currency);
+    query.addBindValue(taxCategory);
 
     if (!query.exec()) {
         m_lastError = query.lastError().text();
@@ -257,12 +261,14 @@ bool Database::createAccount(int code, const QString &name, const QString &type,
     return true;
 }
 
-bool Database::updateAccount(int64_t id, const QString &name, const QString &type)
+bool Database::updateAccount(int64_t id, const QString &name, const QString &type,
+                              const QString &taxCategory)
 {
     QSqlQuery query(m_db);
-    query.prepare("UPDATE accounts SET name = ?, type = ? WHERE id = ?");
+    query.prepare("UPDATE accounts SET name = ?, type = ?, tax_category = ? WHERE id = ?");
     query.addBindValue(name);
     query.addBindValue(type);
+    query.addBindValue(taxCategory);
     query.addBindValue(static_cast<qlonglong>(id));
 
     if (!query.exec()) {
@@ -321,7 +327,7 @@ std::vector<AccountRow> Database::allAccounts() const
 {
     std::vector<AccountRow> result;
     QSqlQuery query(m_db);
-    query.exec("SELECT id, code, name, type, currency, balance_cents FROM accounts ORDER BY code");
+    query.exec("SELECT id, code, name, type, currency, balance_cents, tax_category FROM accounts ORDER BY code");
 
     while (query.next()) {
         AccountRow row;
@@ -331,6 +337,7 @@ std::vector<AccountRow> Database::allAccounts() const
         row.type = query.value(3).toString();
         row.currency = query.value(4).toString();
         row.balanceCents = query.value(5).toLongLong();
+        row.taxCategory = query.value(6).toString();
         result.push_back(row);
     }
     return result;
@@ -339,7 +346,7 @@ std::vector<AccountRow> Database::allAccounts() const
 AccountRow Database::accountById(int64_t id) const
 {
     QSqlQuery query(m_db);
-    query.prepare("SELECT id, code, name, type, currency, balance_cents FROM accounts WHERE id = ?");
+    query.prepare("SELECT id, code, name, type, currency, balance_cents, tax_category FROM accounts WHERE id = ?");
     query.addBindValue(static_cast<qlonglong>(id));
     query.exec();
 
@@ -351,6 +358,7 @@ AccountRow Database::accountById(int64_t id) const
         row.type = query.value(3).toString();
         row.currency = query.value(4).toString();
         row.balanceCents = query.value(5).toLongLong();
+        row.taxCategory = query.value(6).toString();
     }
     return row;
 }
@@ -358,7 +366,7 @@ AccountRow Database::accountById(int64_t id) const
 AccountRow Database::accountByCode(int code) const
 {
     QSqlQuery query(m_db);
-    query.prepare("SELECT id, code, name, type, currency, balance_cents FROM accounts WHERE code = ?");
+    query.prepare("SELECT id, code, name, type, currency, balance_cents, tax_category FROM accounts WHERE code = ?");
     query.addBindValue(code);
     query.exec();
 
@@ -370,6 +378,7 @@ AccountRow Database::accountByCode(int code) const
         row.type = query.value(3).toString();
         row.currency = query.value(4).toString();
         row.balanceCents = query.value(5).toLongLong();
+        row.taxCategory = query.value(6).toString();
     }
     return row;
 }
@@ -530,7 +539,7 @@ std::vector<Database::AccountBalance> Database::accountBalancesForPeriod(
     std::vector<AccountBalance> result;
     QSqlQuery query(m_db);
     query.prepare(R"(
-        SELECT a.id, a.code, a.name, a.type,
+        SELECT a.id, a.code, a.name, a.type, a.tax_category,
                COALESCE(SUM(jl.debit_cents), 0) - COALESCE(SUM(jl.credit_cents), 0) AS net
         FROM accounts a
         LEFT JOIN (
@@ -552,7 +561,8 @@ std::vector<Database::AccountBalance> Database::accountBalancesForPeriod(
         ab.code = query.value(1).toInt();
         ab.name = query.value(2).toString();
         ab.type = query.value(3).toString();
-        ab.balanceCents = query.value(4).toLongLong();
+        ab.taxCategory = query.value(4).toString();
+        ab.balanceCents = query.value(5).toLongLong();
         result.push_back(ab);
     }
     return result;
