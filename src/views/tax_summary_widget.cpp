@@ -92,9 +92,12 @@ void TaxSummaryWidget::refresh()
         m_toDate->date().toString("yyyy-MM-dd"));
 
     for (const auto &ab : balances) {
+        if (ab.taxCategory == "Not Tax-Relevant")
+            continue;
         if (ab.type == "revenue") {
             QString cat = ab.taxCategory.isEmpty() ? "Uncategorized" : ab.taxCategory;
-            incomeGroups[cat].push_back({ab.code, ab.name, ab.balanceCents});
+            // Negate: accountBalancesForPeriod returns debits-credits, revenue is credit-normal
+            incomeGroups[cat].push_back({ab.code, ab.name, -ab.balanceCents});
         } else if (ab.type == "expense") {
             QString cat = ab.taxCategory.isEmpty() ? "Uncategorized" : ab.taxCategory;
             deductionGroups[cat].push_back({ab.code, ab.name, ab.balanceCents});
@@ -192,9 +195,8 @@ void TaxSummaryWidget::refresh()
     m_table->setItem(row++, 0, new QTableWidgetItem(""));
 
     // NET PROFIT (LOSS)
-    // Revenue balances from accountBalancesForPeriod are negative (credits - debits)
-    // so totalIncome is negative for net revenue. Negate for display.
-    int64_t netProfit = -totalIncome - totalDeductions;
+    // totalIncome is already positive (negated from raw query), totalDeductions is positive
+    int64_t netProfit = totalIncome - totalDeductions;
     setBoldRow(row, "NET PROFIT (LOSS)", formatCents(netProfit));
 
     // Summary label
