@@ -12,6 +12,7 @@
 #include <QIcon>
 #include "utils/csv_export.h"
 #include "utils/print_report.h"
+#include "attachments_dialog.h"
 
 JournalListWidget::JournalListWidget(Database *db, QWidget *parent)
     : QWidget(parent)
@@ -19,8 +20,8 @@ JournalListWidget::JournalListWidget(Database *db, QWidget *parent)
     , m_table(new QTableWidget(this))
     , m_filterEdit(new QLineEdit(this))
 {
-    m_table->setColumnCount(5);
-    m_table->setHorizontalHeaderLabels({"#", "Date", "Description", "Lines", "Status"});
+    m_table->setColumnCount(6);
+    m_table->setHorizontalHeaderLabels({"#", "Date", "Description", "Lines", "Attach", "Status"});
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setAlternatingRowColors(true);
@@ -31,7 +32,8 @@ JournalListWidget::JournalListWidget(Database *db, QWidget *parent)
     m_table->setColumnWidth(0, 50);
     m_table->setColumnWidth(1, 100);
     m_table->setColumnWidth(3, 60);
-    m_table->setColumnWidth(4, 80);
+    m_table->setColumnWidth(4, 60);
+    m_table->setColumnWidth(5, 80);
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_table, &QTableWidget::customContextMenuRequested,
             this, &JournalListWidget::onContextMenu);
@@ -74,11 +76,15 @@ void JournalListWidget::refresh()
                         entry.description.startsWith("[VOID");
         QString status = isVoided ? "Voided" : "Posted";
 
+        auto attachments = m_db->attachmentsForEntry(entry.id);
+        int attachCount = static_cast<int>(attachments.size());
+
         m_table->setItem(row, 0, new QTableWidgetItem(QString::number(entry.id)));
         m_table->setItem(row, 1, new QTableWidgetItem(entry.date));
         m_table->setItem(row, 2, new QTableWidgetItem(entry.description));
         m_table->setItem(row, 3, new QTableWidgetItem(QString::number(entry.lines.size())));
-        m_table->setItem(row, 4, new QTableWidgetItem(status));
+        m_table->setItem(row, 4, new QTableWidgetItem(attachCount > 0 ? QString::number(attachCount) : ""));
+        m_table->setItem(row, 5, new QTableWidgetItem(status));
 
         // Store entry ID for context menu
         m_table->item(row, 0)->setData(Qt::UserRole, static_cast<qlonglong>(entry.id));
@@ -89,7 +95,7 @@ void JournalListWidget::refresh()
         m_table->setRowHidden(row, !matches);
 
         if (isVoided) {
-            for (int c = 0; c < 5; ++c) {
+            for (int c = 0; c < 6; ++c) {
                 m_table->item(row, c)->setForeground(Qt::gray);
             }
         }
@@ -113,26 +119,27 @@ void JournalListWidget::onContextMenu(const QPoint &pos)
 
     int64_t entryId = idItem->data(Qt::UserRole).toLongLong();
     QString desc = m_table->item(row, 2)->text();
-
-    // Don't show void option for already voided entries
-    if (desc.startsWith("[VOIDED]") || desc.startsWith("[VOID"))
-        return;
+    bool isVoided = desc.startsWith("[VOIDED]") || desc.startsWith("[VOID");
 
     QMenu menu(this);
-    menu.addAction("Void Entry...", this, [this, entryId]() {
-        auto reply = QMessageBox::question(this, "Void Journal Entry",
-            QString("Void journal entry #%1?\n\n"
-                    "This will create a reversing entry to zero out all balances.")
-                .arg(entryId));
-        if (reply != QMessageBox::Yes) return;
 
-        if (!m_db->voidJournalEntry(entryId)) {
-            QMessageBox::warning(this, "Error",
-                "Failed to void entry: " + m_db->lastError());
-            return;
-        }
-        refresh();
-    });
+    if (!isVoided) {
+        menu.addAction("Void Entry...", this, [this, entryId]() {
+            auto reply = QMessageBox::question(this, "Void Journal Entry",
+                QString("Void journal entry #%1?\n\n"
+                        "This will create a reversing entry to zero out all balances.")
+                    .arg(entryId));
+            if (reply != QMessageBox::Yes) return;
+
+            if (!m_db->voidJournalEntry(entryId)) {
+                QMessageBox::warning(this, "Error",
+                    "Failed to void entry: " + m_db->lastError());
+                return;
+            }
+            refresh();
+        });
+    }
+
     menu.addAction("View Details...", this, [this, entryId]() {
         auto entry = m_db->journalEntryById(entryId);
         QString details = QString("Entry #%1\nDate: %2\nDescription: %3\n\nLines:\n")
@@ -146,6 +153,13 @@ void JournalListWidget::onContextMenu(const QPoint &pos)
         }
         QMessageBox::information(this, "Journal Entry Details", details);
     });
+
+    menu.addAction("Attachments...", this, [this, entryId]() {
+        AttachmentsDialog dialog(m_db, entryId, this);
+        dialog.exec();
+        refresh();
+    });
+
     menu.exec(m_table->viewport()->mapToGlobal(pos));
 }
 

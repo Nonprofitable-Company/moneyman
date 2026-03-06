@@ -16,6 +16,11 @@
 #include <QDate>
 #include <QInputDialog>
 #include <QMenu>
+#include <QListWidget>
+#include <QFileDialog>
+#include <QFile>
+#include <QFileInfo>
+#include <QMimeDatabase>
 
 JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     : QDialog(parent)
@@ -70,6 +75,22 @@ JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     connect(loadTemplateBtn, &QPushButton::clicked, this, &JournalEntryDialog::onLoadTemplate);
     connect(saveTemplateBtn, &QPushButton::clicked, this, &JournalEntryDialog::onSaveTemplate);
 
+    // Attachment section
+    auto *attachLayout = new QHBoxLayout;
+    auto *attachBtn = new QPushButton("Attach File...", this);
+    auto *removeAttachBtn = new QPushButton("Remove", this);
+    m_attachmentList = new QListWidget(this);
+    m_attachmentList->setMaximumHeight(80);
+    attachLayout->addWidget(m_attachmentList, 1);
+    auto *attachBtnLayout = new QVBoxLayout;
+    attachBtnLayout->addWidget(attachBtn);
+    attachBtnLayout->addWidget(removeAttachBtn);
+    attachBtnLayout->addStretch();
+    attachLayout->addLayout(attachBtnLayout);
+
+    connect(attachBtn, &QPushButton::clicked, this, &JournalEntryDialog::onAddAttachment);
+    connect(removeAttachBtn, &QPushButton::clicked, this, &JournalEntryDialog::onRemoveAttachment);
+
     // Totals row
     auto *totalsLayout = new QHBoxLayout;
     totalsLayout->addStretch();
@@ -111,6 +132,7 @@ JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     mainLayout->addLayout(formLayout);
     mainLayout->addWidget(m_lineTable, 1);
     mainLayout->addLayout(lineButtons);
+    mainLayout->addLayout(attachLayout);
     mainLayout->addLayout(totalsLayout);
     mainLayout->addWidget(m_balanceStatusLabel);
     mainLayout->addLayout(buttonLayout);
@@ -179,10 +201,20 @@ void JournalEntryDialog::onPost()
         dbLines.push_back(row);
     }
 
-    if (!m_db->postJournalEntry(date, desc, dbLines)) {
+    int64_t entryId = m_db->postJournalEntry(date, desc, dbLines);
+    if (entryId < 0) {
         QMessageBox::warning(this, "Posting Error",
             "Failed to post journal entry: " + m_db->lastError());
         return;
+    }
+
+    // Save pending attachments
+    for (const auto &att : m_pendingAttachments) {
+        if (m_db->addAttachment(entryId, att.filename, att.mimeType, att.data) < 0) {
+            QMessageBox::warning(this, "Attachment Error",
+                "Entry posted but failed to save attachment '" + att.filename
+                + "': " + m_db->lastError());
+        }
     }
 
     accept();
@@ -254,4 +286,37 @@ void JournalEntryDialog::onLoadTemplate()
             break;
         }
     }
+}
+
+void JournalEntryDialog::onAddAttachment()
+{
+    QString path = QFileDialog::getOpenFileName(this, "Attach File", QString(),
+        "Documents (*.pdf *.csv *.xlsx *.xls *.docx *.doc *.txt);;"
+        "Images (*.png *.jpg *.jpeg *.gif *.bmp *.tiff *.tif *.webp *.svg *.heic *.heif *.avif);;"
+        "All Files (*)");
+    if (path.isEmpty()) return;
+
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "Error", "Could not read file: " + path);
+        return;
+    }
+
+    PendingAttachment att;
+    att.data = file.readAll();
+    att.filename = QFileInfo(path).fileName();
+    QMimeDatabase mimeDb;
+    att.mimeType = mimeDb.mimeTypeForFile(path).name();
+
+    m_pendingAttachments.push_back(att);
+    m_attachmentList->addItem(att.filename);
+}
+
+void JournalEntryDialog::onRemoveAttachment()
+{
+    int row = m_attachmentList->currentRow();
+    if (row < 0 || row >= static_cast<int>(m_pendingAttachments.size())) return;
+
+    m_pendingAttachments.erase(m_pendingAttachments.begin() + row);
+    delete m_attachmentList->takeItem(row);
 }

@@ -119,7 +119,7 @@ TEST_CASE("Account CRUD", "[db]")
         JournalLineRow l1; l1.accountId = cash.id; l1.debitCents = 1000;
         JournalLineRow l2; l2.accountId = rev.id; l2.creditCents = 1000;
         lines.push_back(l1); lines.push_back(l2);
-        REQUIRE(db.postJournalEntry("2025-01-01", "Test", lines));
+        REQUIRE(db.postJournalEntry("2025-01-01", "Test", lines) > 0);
 
         REQUIRE_FALSE(db.deleteAccount(cash.id));
         REQUIRE(db.allAccounts().size() == 2);
@@ -145,7 +145,7 @@ TEST_CASE("Journal entry posting", "[db]")
             {0, 0, cash.id, 50000, 0},
             {0, 0, sales.id, 0, 50000},
         };
-        REQUIRE(db.postJournalEntry("2026-03-01", "Sale to customer", lines));
+        REQUIRE(db.postJournalEntry("2026-03-01", "Sale to customer", lines) > 0);
 
         auto updatedCash = db.accountByCode(1000);
         auto updatedSales = db.accountByCode(4000);
@@ -158,14 +158,14 @@ TEST_CASE("Journal entry posting", "[db]")
             {0, 0, cash.id, 50000, 0},
             {0, 0, sales.id, 0, 30000},
         };
-        REQUIRE_FALSE(db.postJournalEntry("2026-03-01", "Bad entry", lines));
+        REQUIRE(db.postJournalEntry("2026-03-01", "Bad entry", lines) == -1);
     }
 
     SECTION("reject single line entry") {
         std::vector<JournalLineRow> lines = {
             {0, 0, cash.id, 50000, 0},
         };
-        REQUIRE_FALSE(db.postJournalEntry("2026-03-01", "Bad entry", lines));
+        REQUIRE(db.postJournalEntry("2026-03-01", "Bad entry", lines) == -1);
     }
 
     SECTION("period balances filter by date range") {
@@ -174,13 +174,13 @@ TEST_CASE("Journal entry posting", "[db]")
             {0, 0, cash.id, 10000, 0},
             {0, 0, sales.id, 0, 10000},
         };
-        REQUIRE(db.postJournalEntry("2026-01-15", "Jan sale", janLines));
+        REQUIRE(db.postJournalEntry("2026-01-15", "Jan sale", janLines) > 0);
 
         std::vector<JournalLineRow> febLines = {
             {0, 0, cash.id, 20000, 0},
             {0, 0, sales.id, 0, 20000},
         };
-        REQUIRE(db.postJournalEntry("2026-02-15", "Feb sale", febLines));
+        REQUIRE(db.postJournalEntry("2026-02-15", "Feb sale", febLines) > 0);
 
         // Full range
         auto full = db.accountBalancesForPeriod("2026-01-01", "2026-12-31");
@@ -229,25 +229,25 @@ TEST_CASE("Fiscal period closing", "[db][fiscal]")
         {0, 0, cash.id, 100000, 0},       // Debit Cash 1000.00
         {0, 0, sales.id, 0, 100000},      // Credit Sales 1000.00
     };
-    REQUIRE(db.postJournalEntry("2026-01-15", "Cash sale", entry1));
+    REQUIRE(db.postJournalEntry("2026-01-15", "Cash sale", entry1) > 0);
 
     std::vector<JournalLineRow> entry2 = {
         {0, 0, cash.id, 50000, 0},        // Debit Cash 500.00
         {0, 0, service.id, 0, 50000},     // Credit Service 500.00
     };
-    REQUIRE(db.postJournalEntry("2026-02-10", "Service income", entry2));
+    REQUIRE(db.postJournalEntry("2026-02-10", "Service income", entry2) > 0);
 
     std::vector<JournalLineRow> entry3 = {
         {0, 0, rent.id, 30000, 0},        // Debit Rent 300.00
         {0, 0, cash.id, 0, 30000},        // Credit Cash 300.00
     };
-    REQUIRE(db.postJournalEntry("2026-03-01", "Rent payment", entry3));
+    REQUIRE(db.postJournalEntry("2026-03-01", "Rent payment", entry3) > 0);
 
     std::vector<JournalLineRow> entry4 = {
         {0, 0, supplies.id, 10000, 0},    // Debit Supplies 100.00
         {0, 0, cash.id, 0, 10000},        // Credit Cash 100.00
     };
-    REQUIRE(db.postJournalEntry("2026-03-15", "Office supplies", entry4));
+    REQUIRE(db.postJournalEntry("2026-03-15", "Office supplies", entry4) > 0);
 
     SECTION("ensureRetainedEarningsAccount auto-creates account 3100") {
         // Should not exist yet
@@ -325,10 +325,10 @@ TEST_CASE("Fiscal period closing", "[db][fiscal]")
             {0, 0, sales.id, 0, 5000},
         };
         // Date within closed period should fail
-        REQUIRE_FALSE(db.postJournalEntry("2026-04-01", "Should fail", lines));
+        REQUIRE(db.postJournalEntry("2026-04-01", "Should fail", lines) == -1);
 
         // Date outside closed period should succeed
-        REQUIRE(db.postJournalEntry("2026-07-01", "Should work", lines));
+        REQUIRE(db.postJournalEntry("2026-07-01", "Should work", lines) > 0);
     }
 
     SECTION("closePeriod fails with no revenue or expense balances") {
@@ -358,7 +358,7 @@ TEST_CASE("Void journal entry", "[db][void]")
         {0, 0, cash.id, 75000, 0},
         {0, 0, sales.id, 0, 75000},
     };
-    REQUIRE(db.postJournalEntry("2026-05-01", "Cash sale", lines));
+    REQUIRE(db.postJournalEntry("2026-05-01", "Cash sale", lines) > 0);
 
     // Verify initial balances
     REQUIRE(db.accountByCode(1000).balanceCents == 75000);
@@ -497,7 +497,7 @@ TEST_CASE("Audit log", "[db][audit]")
             {0, 0, cash.id, 10000, 0},
             {0, 0, sales.id, 0, 10000},
         };
-        REQUIRE(db.postJournalEntry("2026-01-01", "Test sale", lines));
+        REQUIRE(db.postJournalEntry("2026-01-01", "Test sale", lines) > 0);
 
         auto log = db.allAuditLog();
         // 2 account creations + 1 journal post = 3
@@ -517,7 +517,7 @@ TEST_CASE("Audit log", "[db][audit]")
             {0, 0, cash.id, 10000, 0},
             {0, 0, sales.id, 0, 10000},
         };
-        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines));
+        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines) > 0);
         auto entries = db.allJournalEntries();
         REQUIRE(db.voidJournalEntry(entries[0].id));
 
@@ -555,7 +555,7 @@ TEST_CASE("Database backup and restore", "[db][backup]")
             {0, 0, cash.id, 50000, 0},
             {0, 0, sales.id, 0, 50000},
         };
-        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines));
+        REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines) > 0);
         REQUIRE(db.databasePath() == origPath);
         db.close();
     }
@@ -615,6 +615,78 @@ TEST_CASE("Encryption key management", "[db]")
         Database db2;
         REQUIRE(db2.open(dbPath, "new_key"));
         REQUIRE(db2.accountByCode(1000).name == "Cash");
+    }
+}
+
+TEST_CASE("Attachments CRUD", "[db][attachment]")
+{
+    QTemporaryDir tmpDir;
+    REQUIRE(tmpDir.isValid());
+
+    Database db;
+    REQUIRE(db.open(tmpDir.path() + "/test.db", TEST_KEY));
+
+    // Create accounts and a journal entry to attach to
+    REQUIRE(db.createAccount(1000, "Cash", "asset"));
+    REQUIRE(db.createAccount(4000, "Sales", "revenue"));
+    auto cash = db.accountByCode(1000);
+    auto sales = db.accountByCode(4000);
+
+    std::vector<JournalLineRow> lines = {
+        {0, 0, cash.id, 10000, 0},
+        {0, 0, sales.id, 0, 10000},
+    };
+    REQUIRE(db.postJournalEntry("2026-01-01", "Sale", lines) > 0);
+    auto entries = db.allJournalEntries();
+    REQUIRE(entries.size() == 1);
+    int64_t entryId = entries[0].id;
+
+    SECTION("add and retrieve attachment by ID with BLOB round-trip") {
+        QByteArray testData("fake PDF content \x00\x01\x02\x03", 22);
+        int64_t attachId = db.addAttachment(entryId, "receipt.pdf", "application/pdf", testData);
+        REQUIRE(attachId > 0);
+
+        auto row = db.attachmentById(attachId);
+        REQUIRE(row.id == attachId);
+        REQUIRE(row.entryId == entryId);
+        REQUIRE(row.filename == "receipt.pdf");
+        REQUIRE(row.mimeType == "application/pdf");
+        REQUIRE(row.data == testData);
+        REQUIRE_FALSE(row.createdAt.isEmpty());
+    }
+
+    SECTION("attachmentsForEntry returns metadata without BLOB") {
+        db.addAttachment(entryId, "receipt.pdf", "application/pdf", QByteArray("pdf data"));
+        db.addAttachment(entryId, "photo.jpg", "image/jpeg", QByteArray("jpg data"));
+
+        auto metas = db.attachmentsForEntry(entryId);
+        REQUIRE(metas.size() == 2);
+        REQUIRE(metas[0].filename == "receipt.pdf");
+        REQUIRE(metas[1].filename == "photo.jpg");
+        REQUIRE_FALSE(metas[0].createdAt.isEmpty());
+    }
+
+    SECTION("deleteAttachment removes it") {
+        int64_t attachId = db.addAttachment(entryId, "receipt.pdf", "application/pdf", QByteArray("data"));
+        REQUIRE(attachId > 0);
+
+        REQUIRE(db.deleteAttachment(attachId));
+
+        auto row = db.attachmentById(attachId);
+        REQUIRE(row.id == 0);
+        REQUIRE(db.attachmentsForEntry(entryId).empty());
+    }
+
+    SECTION("deleteAttachment fails for nonexistent ID") {
+        REQUIRE_FALSE(db.deleteAttachment(99999));
+    }
+
+    SECTION("attachment references valid entry_id") {
+        // FK constraint: entry_id must exist in journal_entries
+        QByteArray data("test");
+        int64_t result = db.addAttachment(99999, "bad.pdf", "application/pdf", data);
+        // SQLite FK enforcement should reject this
+        REQUIRE(result == -1);
     }
 }
 
