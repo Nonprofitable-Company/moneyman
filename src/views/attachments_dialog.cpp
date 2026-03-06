@@ -97,7 +97,7 @@ void AttachmentsDialog::onOpen()
     static QTemporaryDir tmpDir;
     if (!tmpDir.isValid()) return;
 
-    QString tmpPath = tmpDir.path() + "/" + row.filename;
+    QString tmpPath = tmpDir.path() + "/" + QString::number(row.id) + "_" + row.filename;
     QFile tmpFile(tmpPath);
     if (!tmpFile.open(QIODevice::WriteOnly)) return;
     tmpFile.write(row.data);
