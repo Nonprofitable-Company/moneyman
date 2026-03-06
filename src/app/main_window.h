@@ -23,6 +23,8 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+    bool initDatabase();
+
 private slots:
     void onNewJournalEntry();
     void onBackup();

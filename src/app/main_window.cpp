@@ -43,22 +43,30 @@ MainWindow::MainWindow(QWidget *parent)
     , m_journalListWidget(nullptr)
     , m_auditLogWidget(nullptr)
 {
-    setupUi();
-    setupMenuBar();
-    setupToolBar();
-    setupStatusBar();
+}
 
-    PasswordDialog pwDialog(PasswordDialog::Unlock, this);
-    if (pwDialog.exec() != QDialog::Accepted) {
-        QMessageBox::warning(this, "No Passphrase",
-            "A passphrase is required to open the database.");
-    } else {
+bool MainWindow::initDatabase()
+{
+    for (;;) {
+        PasswordDialog pwDialog(PasswordDialog::Unlock);
+        if (pwDialog.exec() != QDialog::Accepted)
+            return false;
+
         m_passphrase = pwDialog.password();
-        if (!m_database->open(QString(), m_passphrase)) {
-            QMessageBox::critical(this, "Database Error",
-                "Failed to open database: " + m_database->lastError()
-                + "\n\nThe passphrase may be incorrect.");
+        if (m_database->open(QString(), m_passphrase)) {
+            setupUi();
+            setupMenuBar();
+            setupToolBar();
+            setupStatusBar();
+            return true;
         }
+
+        auto reply = QMessageBox::critical(nullptr, "Database Error",
+            "Failed to open database: " + m_database->lastError()
+            + "\n\nThe passphrase may be incorrect.",
+            QMessageBox::Retry | QMessageBox::Cancel);
+        if (reply != QMessageBox::Retry)
+            return false;
     }
 }
 
