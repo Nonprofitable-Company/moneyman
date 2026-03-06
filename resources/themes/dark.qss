@@ -231,7 +231,7 @@ QWidget#sidebar {
 
 QWidget#sidebar QPushButton {
     background-color: transparent;
-    color: #94A3B8;
+    color: #CBD5E1;
     border: none;
     border-radius: 0;
     text-align: left;
@@ -246,7 +246,7 @@ QWidget#sidebar QPushButton:hover {
 }
 
 QWidget#sidebar QPushButton[active="true"] {
-    background-color: #1A1A2E;
+    background-color: rgba(251, 146, 60, 0.25);
     color: #FFFFFF;
     border-left: 3px solid #FB923C;
     padding-left: 13px;

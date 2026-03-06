@@ -224,14 +224,15 @@ QStatusBar {
 
 /* --- Sidebar --- */
 QWidget#sidebar {
-    background-color: #1E293B;
+    background-color: #F1F5F9;
     min-width: 200px;
     max-width: 200px;
+    border-right: 1px solid #E2E8F0;
 }
 
 QWidget#sidebar QPushButton {
     background-color: transparent;
-    color: #94A3B8;
+    color: #1E293B;
     border: none;
     border-radius: 0;
     text-align: left;
@@ -241,19 +242,19 @@ QWidget#sidebar QPushButton {
 }
 
 QWidget#sidebar QPushButton:hover {
-    background-color: #334155;
-    color: #E2E8F0;
+    background-color: #E2E8F0;
+    color: #0F172A;
 }
 
 QWidget#sidebar QPushButton[active="true"] {
-    background-color: #334155;
-    color: #FFFFFF;
+    background-color: #E2E8F0;
+    color: #0F172A;
     border-left: 3px solid #F97316;
     padding-left: 13px;
 }
 
 QWidget#sidebar QLabel#sidebarSeparator {
-    background-color: #334155;
+    background-color: #E2E8F0;
     max-height: 1px;
     min-height: 1px;
     margin: 8px 16px;

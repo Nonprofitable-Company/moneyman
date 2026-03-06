@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QVector>
+#include <QString>
 
 class QPushButton;
 class QVBoxLayout;
@@ -23,12 +24,18 @@ public:
 signals:
     void currentChanged(int index);
 
+private slots:
+    void onThemeChanged(bool dark);
+
 private:
     void onButtonClicked(int index);
+    void reloadIcons();
 
     QVBoxLayout *m_layout;
     QVector<QPushButton *> m_buttons;
+    QVector<QString> m_iconPaths;
     int m_currentIndex = -1;
+    bool m_dark = true;
 };
 
 #endif // SIDEBAR_WIDGET_H
