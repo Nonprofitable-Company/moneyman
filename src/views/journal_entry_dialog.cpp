@@ -44,6 +44,7 @@ JournalEntryDialog::JournalEntryDialog(Database *db, QWidget *parent)
     m_lineTable->setAlternatingRowColors(true);
     m_lineTable->horizontalHeader()->setStretchLastSection(true);
     m_lineTable->verticalHeader()->hide();
+    m_lineTable->verticalHeader()->setDefaultSectionSize(40);
     m_lineTable->setColumnWidth(JournalLineModel::ColAccount, 280);
     m_lineTable->setColumnWidth(JournalLineModel::ColDebit, 120);
     m_lineTable->setColumnWidth(JournalLineModel::ColCredit, 120);
