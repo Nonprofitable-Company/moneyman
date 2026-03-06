@@ -124,7 +124,8 @@ bool Database::createSchema()
             name TEXT NOT NULL,
             type TEXT NOT NULL CHECK(type IN ('asset','liability','equity','revenue','expense')),
             currency TEXT NOT NULL DEFAULT 'USD',
-            balance_cents INTEGER NOT NULL DEFAULT 0
+            balance_cents INTEGER NOT NULL DEFAULT 0,
+            tax_category TEXT DEFAULT ''
         )
     )";
 
@@ -257,7 +258,7 @@ bool Database::createAccount(int code, const QString &name, const QString &type,
         m_lastError = query.lastError().text();
         return false;
     }
-    logAudit("CREATE_ACCOUNT", QString("Created account %1 — %2 (%3, %4)").arg(code).arg(name, type, currency));
+    logAudit("CREATE_ACCOUNT", QString("Created account %1 — %2 (%3, %4, tax: %5)").arg(code).arg(name, type, currency, taxCategory));
     return true;
 }
 
@@ -275,7 +276,7 @@ bool Database::updateAccount(int64_t id, const QString &name, const QString &typ
         m_lastError = query.lastError().text();
         return false;
     }
-    logAudit("UPDATE_ACCOUNT", QString("Updated account #%1: %2 (%3)").arg(id).arg(name, type));
+    logAudit("UPDATE_ACCOUNT", QString("Updated account #%1: %2 (%3, tax: %4)").arg(id).arg(name, type, taxCategory));
     return true;
 }
 
