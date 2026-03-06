@@ -94,6 +94,10 @@ target_include_directories(moneyman_lib PUBLIC
     ${SQLCIPHER_INCLUDE_DIRS}
 )
 
+if(SQLCIPHER_LIBRARY_DIRS)
+    target_link_directories(moneyman_lib PUBLIC ${SQLCIPHER_LIBRARY_DIRS})
+endif()
+
 target_link_libraries(moneyman_lib PUBLIC
     Qt6::Core
     Qt6::Widgets
