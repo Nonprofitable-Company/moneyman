@@ -1,6 +1,6 @@
 # MoneyMan
 
-Double-entry bookkeeping desktop application for The Nonprofitable Company.
+Double-entry bookkeeping desktop application.
 
 ## Tech Stack
 
@@ -10,11 +10,10 @@ Double-entry bookkeeping desktop application for The Nonprofitable Company.
 - **Build:** CMake
 - **Testing:** Qt Test + Catch2
 - **Platforms:** Linux, macOS, Windows
-- **CI/CD:** GitHub Actions (build, test, release for all platforms)
 
 ## Architecture
 
-- Offline-first — app must work with zero network connectivity
+- Offline-first - app must work with zero network connectivity
 - SQLCipher-encrypted SQLite database for all financial data
 - Model-View architecture using Qt's model/view framework
 - Double-entry accounting: every transaction has balanced debits and credits
@@ -38,19 +37,23 @@ src/
 ├── views/            # Qt widgets / UI
 ├── db/               # Database access layer (SQLCipher)
 ├── accounting/       # Core accounting engine (double-entry logic)
+├── theme/            # Theme management (dark/light mode)
 └── utils/            # Shared utilities
+resources/
+├── fonts/            # Font resources (Inter)
+├── icons/            # SVG icons
+└── themes/           # QSS stylesheets (light, dark)
 tests/
 ├── test_accounting/  # Accounting engine tests
-├── test_models/      # Model tests
-└── test_db/          # Database tests
+├── test_db/          # Database tests
 ```
 
 ### Rules
 
 - Every transaction MUST balance: total debits == total credits
-- No raw SQL outside `src/db/` — all queries go through the DB layer
+- No raw SQL outside `src/db/` - all queries go through the DB layer
 - All monetary values use integer cents (int64_t), never floating point
-- UI and business logic must be separated — models are testable without UI
+- UI and business logic must be separated - models are testable without UI
 
 ## Commands
 
@@ -75,7 +78,7 @@ cd build && ctest --output-on-failure
 ### Verification (MUST pass before considering work complete)
 
 1. `cmake --build build` compiles without errors or warnings (-Werror)
-2. `ctest --output-on-failure` — all tests pass
+2. `ctest --output-on-failure` - all tests pass
 3. New accounting logic has corresponding test in tests/
 4. Debits == Credits invariant enforced in all transaction code
 
@@ -95,7 +98,7 @@ cd build && ctest --output-on-failure
 - Sum of debits MUST equal sum of credits in every entry
 - Assets + Expenses increase with DEBITS
 - Liabilities + Equity + Revenue increase with CREDITS
-- No entry may be deleted — only reversing entries allowed
+- No entry may be deleted - only reversing entries allowed
 - All entries must have a date, description, and at least one debit and one credit line
 
 ### Key Entities
@@ -105,7 +108,7 @@ cd build && ctest --output-on-failure
 - **JournalLine**: account_id, debit_amount, credit_amount
 - **FiscalPeriod**: start_date, end_date, closed flag
 
-## Development Process (Ralph Loop)
+## Development Process
 
 ### Priorities (in order)
 
@@ -117,8 +120,8 @@ cd build && ctest --output-on-failure
 ### Per-Iteration Checklist
 
 - Read recent git log to understand what was done in previous iterations
-- Check build status first — fix compilation errors before adding features
-- Run tests — fix failures before adding new code
+- Check build status first - fix compilation errors before adding features
+- Run tests - fix failures before adding new code
 - Make ONE logical change per iteration, then commit
 - Write a clear git commit message describing what changed
 
@@ -141,6 +144,11 @@ cd build && ctest --output-on-failure
 - **Linux:** `sudo apt-get install libsqlcipher-dev` (PkgConfig)
 - **macOS:** `brew install sqlcipher` (PkgConfig)
 - **Windows:** `vcpkg install sqlcipher:x64-windows` (CMake `find_package`)
+
+### CI/CD
+
+- **Build, Tests, Releases:** GitHub Actions (`.github/workflows/ci.yml`)
+- **Test Status:** Check the Actions tab after pushing changes
 
 ### Releases
 

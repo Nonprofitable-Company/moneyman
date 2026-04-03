@@ -1,23 +1,23 @@
 # MoneyMan
 
-Double-entry bookkeeping desktop application for The Nonprofitable Company.
+Double-entry bookkeeping desktop application.
 
 Built with C++17, Qt6 Widgets, and SQLCipher-encrypted SQLite.
 
 ## Features
 
-- **Chart of Accounts** — GAAP-standard five-category structure (Assets, Liabilities, Equity, Revenue, Expenses) with customizable account codes
-- **Journal Entries** — Double-entry transaction posting with enforced debit/credit balance, reusable templates
-- **Reports** — Trial Balance, General Ledger, Income Statement, Balance Sheet
-- **Fiscal Periods** — Period closing with automatic closing entries to Retained Earnings
-- **Audit Log** — Append-only record of all actions (no deletions)
-- **Dashboard** — Overview of financial position with recent activity
-- **Import/Export** — CSV import for chart of accounts, CSV and PDF export for all reports
-- **Encryption** — AES-256 database encryption via SQLCipher with passphrase management
-- **Backup & Restore** — Full database backup and restore
-- **In-App Help** — Built-in user guide covering GAAP fundamentals and app usage
-- **Dark Mode** — Toggle via Window menu
-- **Keyboard Shortcuts** — Ctrl+J (new entry), Ctrl+R (refresh), Ctrl+1–7 (switch tabs), F1 (help)
+- **Chart of Accounts** - GAAP-standard five-category structure (Assets, Liabilities, Equity, Revenue, Expenses) with customizable account codes
+- **Journal Entries** - Double-entry transaction posting with enforced debit/credit balance, reusable templates
+- **Reports** - Trial Balance, General Ledger, Income Statement, Balance Sheet
+- **Fiscal Periods** - Period closing with automatic closing entries to Retained Earnings
+- **Audit Log** - Append-only record of all actions (no deletions)
+- **Dashboard** - Overview of financial position with recent activity
+- **Import/Export** - CSV import for chart of accounts, CSV and PDF export for all reports
+- **Encryption** - AES-256 database encryption via SQLCipher with passphrase management
+- **Backup and Restore** - Full database backup and restore
+- **In-App Help** - Built-in user guide covering GAAP fundamentals and app usage
+- **Dark Mode** - Toggle via Window menu
+- **Keyboard Shortcuts** - Ctrl+J (new entry), Ctrl+R (refresh), Ctrl+1-7 (switch tabs), F1 (help)
 
 ## Requirements
 
@@ -78,7 +78,12 @@ src/
 ├── views/            # Qt widgets / UI
 ├── db/               # Database access layer (SQLCipher)
 ├── accounting/       # Core accounting engine (double-entry logic)
+├── theme/            # Theme management (dark/light mode)
 └── utils/            # CSV/PDF export, CSV import
+resources/
+├── fonts/            # Font resources (Inter)
+├── icons/            # SVG icons
+└── themes/           # QSS stylesheets (light, dark)
 tests/
 ├── test_accounting/  # Accounting engine tests
 └── test_db/          # Database tests
@@ -95,6 +100,6 @@ docs/
 - No entry may be deleted — only reversing entries
 - All monetary values stored as integer cents (int64_t)
 
-## License
+License
 
-Proprietary — The Nonprofitable Company.
+Proprietary.
