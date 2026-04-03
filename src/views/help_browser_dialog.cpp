@@ -94,7 +94,7 @@ th { background: #ecf0f1; }
 <body>
 
 <h1>MoneyMan User Guide</h1>
-<p>A double-entry bookkeeping application for The Nonprofitable Company.</p>
+<p>A double-entry bookkeeping application.</p>
 
 <!-- ═══════════════════════════════════════════ -->
 <a name="getting-started"></a>

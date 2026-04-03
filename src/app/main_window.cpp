@@ -76,7 +76,7 @@ MainWindow::~MainWindow() = default;
 
 void MainWindow::setupUi()
 {
-    setWindowTitle("MoneyMan \u2014 The Nonprofitable Company");
+    setWindowTitle("MoneyMan");
     resize(1200, 800);
 
     // Create sidebar
@@ -180,7 +180,7 @@ void MainWindow::setupMenuBar()
     helpMenu->addAction("&About MoneyMan", this, [this]() {
         QMessageBox::about(this, "About MoneyMan",
             "<h2>MoneyMan v0.1.0</h2>"
-            "<p>Double-entry bookkeeping for The Nonprofitable Company.</p>"
+            "<p>Double-entry bookkeeping.</p>"
             "<p>Features: Chart of Accounts, Journal Entries, Trial Balance, "
             "General Ledger, Income Statement, Balance Sheet, Audit Log, "
             "Templates, Fiscal Periods, CSV/PDF Export, Encrypted Database.</p>"
