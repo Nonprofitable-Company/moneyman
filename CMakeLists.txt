@@ -121,6 +121,16 @@ set_target_properties(moneyman PROPERTIES
     MACOSX_BUNDLE_COPYRIGHT "Proprietary - MoneyMan"
 )
 
+if(APPLE)
+    # MacDeployQt automatically looks for the .app bundle in the same directory as the executable
+    # Since MACOSX_BUNDLE is TRUE, the app will be created as moneyman.app/Contents/MacOS/moneyman
+    # We need to run macdeployqt on the app bundle (which macdeployqt will find automatically)
+    add_custom_command(TARGET moneyman POST_BUILD
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+        COMMAND macdeployqt "${CMAKE_BINARY_DIR}/moneyman.app" -verbose=1
+        COMMENT "Deploying Qt frameworks into app bundle..."
+    )
+endif()
 
 # === Tests ===
 enable_testing()

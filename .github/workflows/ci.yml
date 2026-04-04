@@ -60,13 +60,12 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           # Run macdeployqt to collect Qt frameworks/plugins into the app bundle
+          # CMake creates the app as build/moneyman.app on macOS
           APP_BUNDLE="build/moneyman.app"
           if [ -d "$APP_BUNDLE" ]; then
             macdeployqt "$APP_BUNDLE" -verbose=1
-          elif [ -d "build/moneyman/MoneyMan.app" ]; then
-            macdeployqt "build/moneyman/MoneyMan.app" -verbose=1
           else
-            echo "ERROR: App bundle not found for macdeployqt"; exit 1
+            echo "ERROR: App bundle not found at $APP_BUNDLE for macdeployqt"; exit 1
           fi
 
       - name: Test
@@ -86,17 +85,18 @@ jobs:
         run: |
           mkdir -p staging
           # Include the macOS app bundle in the artifact
-          cp -R build/moneyman.app staging/ 2>/dev/null || cp -R build/moneyman/MoneyMan.app staging/ 2>/dev/null || true
-          # Create a zip with the app bundle at the top level
-          if [ -d staging/MoneyMan.app ]; then
-            (cd staging && zip -r ../moneyman-macos.zip MoneyMan.app)
-          elif [ -d staging/moneyman.app ]; then
-            # Normalize to MoneyMan.app as the top-level in the archive
-            (cd staging && mkdir -p MoneyMan.app && cp -R moneyman.app/* MoneyMan.app/ 2>/dev/null || true)
-            (cd staging && if [ -d MoneyMan.app ]; then zip -r ../moneyman-macos.zip MoneyMan.app; else echo "ERROR: App bundle not found after normalization"; exit 1; fi)
+          # CMake creates the app as build/moneyman.app on macOS
+          if [ -d "build/moneyman.app" ]; then
+            cp -R build/moneyman.app staging/
           else
-            echo "ERROR: App bundle not found for macOS packaging"; exit 1
+            echo "ERROR: App bundle not found at build/moneyman.app"; exit 1
           fi
+          # Create a zip with the app bundle at the top level
+          if [ -d staging/moneyman.app ]; then
+            # Normalize to MoneyMan.app as the top-level in the archive
+            mv staging/moneyman.app staging/MoneyMan.app
+          fi
+          (cd staging && zip -r ../moneyman-macos.zip MoneyMan.app)
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
