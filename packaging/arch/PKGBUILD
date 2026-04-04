@@ -1,0 +1,42 @@
+# Maintainer: Ed Mong <ed@example.com>
+pkgname=moneyman
+pkgver=2
+pkgrel=1
+pkgdesc="Double-entry bookkeeping desktop application with SQLCipher encryption"
+arch=('x86_64')
+url="https://github.com/Nonprofitable-Company/moneyman"
+license=('custom:Proprietary')
+depends=('qt6-base' 'sqlcipher')
+makedepends=('cmake' 'catch2' 'gcc')
+source=("git+https://github.com/Nonprofitable-Company/moneyman.git#tag=v${pkgver}")
+sha256sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname"
+    cmake -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build
+}
+
+check() {
+    cd "$srcdir/$pkgname/build"
+    ctest --output-on-failure
+}
+
+package() {
+    cd "$srcdir/$pkgname/build"
+    install -Dm755 moneyman "$pkgdir/usr/bin/moneyman"
+    
+    # Desktop entry (if exists in repo)
+    install -Dm644 "$srcdir/$pkgname/packaging/arch/moneyman.desktop" \
+        "$pkgdir/usr/share/applications/moneyman.desktop" 2>/dev/null || true
+    
+    # Icon (if exists)
+    install -Dm644 "$srcdir/$pkgname/resources/icons/moneyman.svg" \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/moneyman.svg" 2>/dev/null || true
+    
+    # License (if exists)
+    install -Dm644 "$srcdir/$pkgname/LICENSE" \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
+}
