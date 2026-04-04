@@ -114,6 +114,13 @@ endif()
 add_executable(moneyman src/main.cpp resources/resources.qrc)
 target_link_libraries(moneyman PRIVATE moneyman_lib)
 
+set_target_properties(moneyman PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_BUNDLE_NAME "MoneyMan"
+    MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
+    MACOSX_BUNDLE_COPYRIGHT "Proprietary - MoneyMan"
+)
+
 
 # === Tests ===
 enable_testing()
