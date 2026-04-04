@@ -56,6 +56,18 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
+      - name: macdeployqt (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Run macdeployqt to collect Qt frameworks/plugins into the app bundle
+          # CMake creates the app as build/moneyman.app on macOS
+          APP_BUNDLE="build/moneyman.app"
+          if [ -d "$APP_BUNDLE" ]; then
+            macdeployqt "$APP_BUNDLE" -verbose=1
+          else
+            echo "ERROR: App bundle not found at $APP_BUNDLE for macdeployqt"; exit 1
+          fi
+
       - name: Test
         run: ctest --test-dir build --output-on-failure -C Release
 
@@ -72,8 +84,19 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           mkdir -p staging
-          cp build/moneyman staging/
-          tar -czf moneyman-macos.tar.gz -C staging .
+          # Include the macOS app bundle in the artifact
+          # CMake creates the app as build/moneyman.app on macOS
+          if [ -d "build/moneyman.app" ]; then
+            cp -R build/moneyman.app staging/
+          else
+            echo "ERROR: App bundle not found at build/moneyman.app"; exit 1
+          fi
+          # Create a zip with the app bundle at the top level
+          if [ -d staging/moneyman.app ]; then
+            # Normalize to MoneyMan.app as the top-level in the archive
+            mv staging/moneyman.app staging/MoneyMan.app
+          fi
+          (cd staging && zip -r ../moneyman-macos.zip MoneyMan.app)
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -93,7 +116,7 @@ jobs:
           name: ${{ matrix.artifact }}
           path: |
             moneyman-linux.tar.gz
-            moneyman-macos.tar.gz
+            moneyman-macos.zip
             moneyman-windows.zip
           if-no-files-found: ignore
 
@@ -125,5 +148,5 @@ jobs:
           generate_release_notes: true
           files: |
             moneyman-linux.tar.gz
-            moneyman-macos.tar.gz
+            moneyman-macos.zip
             moneyman-windows.zip
