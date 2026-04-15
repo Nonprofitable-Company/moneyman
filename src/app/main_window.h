@@ -41,6 +41,7 @@ private:
 
     Database *m_database;
     QString m_passphrase;
+    bool m_encrypted = false;
     SidebarWidget *m_sidebar;
     QStackedWidget *m_stack;
     AccountsWidget *m_accountsWidget;

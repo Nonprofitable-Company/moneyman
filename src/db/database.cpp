@@ -21,6 +21,9 @@ Database::~Database()
 
 bool Database::open(const QString &path, const QString &encryptionKey)
 {
+    // Clean up any previous connection before re-opening
+    close();
+
     if (path.isEmpty()) {
         QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
         QDir().mkpath(dataDir);
@@ -34,17 +37,16 @@ bool Database::open(const QString &path, const QString &encryptionKey)
 
     if (!m_db.open()) {
         m_lastError = m_db.lastError().text();
+        close();
         return false;
     }
 
-    // Enable SQLCipher encryption via PRAGMA
-    if (encryptionKey.isEmpty()) {
-        m_lastError = "Encryption key must not be empty";
-        m_db.close();
-        return false;
-    }
-    if (!setEncryptionKey(encryptionKey)) {
-        return false;
+    // Enable SQLCipher encryption via PRAGMA (optional)
+    if (!encryptionKey.isEmpty()) {
+        if (!setEncryptionKey(encryptionKey)) {
+            close();
+            return false;
+        }
     }
 
     // Enable WAL mode for better concurrency

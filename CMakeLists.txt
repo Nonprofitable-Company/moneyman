@@ -82,6 +82,8 @@ add_library(moneyman_lib STATIC
     src/utils/csv_export.h
     src/views/sidebar_widget.cpp
     src/views/sidebar_widget.h
+    src/views/startup_dialog.cpp
+    src/views/startup_dialog.h
     src/theme/theme_manager.cpp
     src/theme/theme_manager.h
     src/app/main_window.cpp

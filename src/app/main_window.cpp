@@ -12,6 +12,7 @@
 #include "views/audit_log_widget.h"
 #include "views/close_period_dialog.h"
 #include "views/password_dialog.h"
+#include "views/startup_dialog.h"
 #include "views/import_csv_dialog.h"
 #include "views/help_browser_dialog.h"
 #include "views/sidebar_widget.h"
@@ -29,6 +30,7 @@
 #include <QFile>
 #include <QShortcut>
 #include <QIcon>
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -50,12 +52,20 @@ MainWindow::MainWindow(QWidget *parent)
 bool MainWindow::initDatabase()
 {
     for (;;) {
-        PasswordDialog pwDialog(PasswordDialog::Unlock);
-        if (pwDialog.exec() != QDialog::Accepted)
+        StartupDialog startup;
+        if (startup.exec() != QDialog::Accepted)
             return false;
 
-        m_passphrase = pwDialog.password();
-        if (m_database->open(QString(), m_passphrase)) {
+        QString path = startup.databasePath();
+        m_passphrase = startup.passphrase();
+        m_encrypted = startup.encrypted();
+
+        if (m_database->open(path, m_passphrase)) {
+            // Persist for the "Recent" shortcut on next launch
+            QSettings settings;
+            settings.setValue("lastDatabasePath", path);
+            settings.setValue("lastDatabaseEncrypted", m_encrypted);
+
             setupUi();
             setupMenuBar();
             setupToolBar();
@@ -65,7 +75,7 @@ bool MainWindow::initDatabase()
 
         auto reply = QMessageBox::critical(nullptr, "Database Error",
             "Failed to open database: " + m_database->lastError()
-            + "\n\nThe passphrase may be incorrect.",
+            + "\n\nThe passphrase may be incorrect, or the file may not be a valid database.",
             QMessageBox::Retry | QMessageBox::Cancel);
         if (reply != QMessageBox::Retry)
             return false;
